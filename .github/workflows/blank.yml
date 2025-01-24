@@ -26,9 +26,6 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Clone repository
-      run: git clone https://github.com/Goetepor/File.git
-
     - name: Install dependencies
       run: |
         sudo docker run -d -p 8080:8080 -v data:/data --name webtor --restart=always ghcr.io/webtor-io/self-hosted:main

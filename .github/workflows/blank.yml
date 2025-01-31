@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          git clone https://github.com/Streamtg/symmetrical-journey.git
+          git clone https://github.com/Streamtg/symmetrical-journey
           cd symmetrical-journey
           virtualenv -p /usr/bin/python3 venv
           source venv/bin/activate

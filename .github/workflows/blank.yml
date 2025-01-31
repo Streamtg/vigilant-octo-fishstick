@@ -20,6 +20,10 @@ jobs:
 
       - name: Install dependencies
         run: |
+          git clone https://github.com/Streamtg/symmetrical-journey.git
+          cd symmetrical-journey
+          virtualenv -p /usr/bin/python3 venv
+          source venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
@@ -31,4 +35,4 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           BLOGGER_API_KEY: ${{ secrets.BLOGGER_API_KEY }}
           BLOG_ID: ${{ secrets.BLOG_ID }}
-        run: python -m bot
+        run: python3 -m bot

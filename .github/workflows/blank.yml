@@ -23,7 +23,7 @@ jobs:
           git clone https://github.com/Streamtg/symmetrical-journey
           cd symmetrical-journey
           virtualenv -p /usr/bin/python3 venv
-          source venv/bin/activate
+          . ./venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 

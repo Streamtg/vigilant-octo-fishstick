@@ -32,7 +32,14 @@ jobs:
           virtualenv venv
           source venv/bin/activate
           pip install -r requirements.txt
+          sudo apt install -y software-properties-common
+          sudo add-apt-repository ppa:deadsnakes/ppa
+          sudo apt update
           sudo apt install python3.7
+          python3.7 --version
+          sudo apt install python3.7-distutils
+          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          python3.7 get-pip.py
 
       - name: Install Ngrok
         run: |

@@ -28,12 +28,11 @@ jobs:
         run: |
           git clone -b webui https://github.com/Streamtg/Fst.git
           cd Fst
-          sudo pip install virtualenv
+          pip install virtualenv
           virtualenv venv
           source venv/bin/activate
-          sudo python -m pip install --upgrade pip
-          sudo pip install -r requirements.txt
-          sudo pip install pyrogram
+          pip install -r requirements.txt
+          pip install pyrogram
 
       - name: Run Bot
         env:

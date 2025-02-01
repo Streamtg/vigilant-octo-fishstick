@@ -33,7 +33,7 @@ jobs:
           source venv/bin/activate
           sudo python -m pip install --upgrade pip
           sudo pip install -r requirements.txt
-          sudo pip install pyrogram==2.0.59
+          sudo pip install pyrogram
 
       - name: Run Bot
         env:

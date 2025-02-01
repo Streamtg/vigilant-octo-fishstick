@@ -42,7 +42,7 @@ jobs:
           BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
           FQDN: ${{ secrets.FQDN }}
         run: |
-          cd Fst
+          cd reimagined-octo-rotary-phone
           source venv/bin/activate
           python3 -m WebStreamer
 

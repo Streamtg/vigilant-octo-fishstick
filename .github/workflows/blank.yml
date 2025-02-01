@@ -33,19 +33,6 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
 
-      - name: Run Bot
-        env:
-          API_ID: ${{ secrets.API_ID }}
-          API_HASH: ${{ secrets.API_HASH }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          PORT: ${{ secrets.PORT }}
-          BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-          FQDN: ${{ secrets.FQDN }}
-        run: |
-          cd reimagined-octo-rotary-phone
-          source venv/bin/activate
-          python3 -m WebStreamer & 
-
       - name: Install Ngrok
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
@@ -59,4 +46,17 @@ jobs:
 
       - name: Start Ngrok with custom URL
         run: |
-          ngrok http --domain=ready-unlikely-osprey.ngrok-free.app 8080
+          nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app 8080 &
+
+      - name: Run Bot
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          PORT: ${{ secrets.PORT }}
+          BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+          FQDN: ${{ secrets.FQDN }}
+        run: |
+          cd reimagined-octo-rotary-phone
+          source venv/bin/activate
+          python3 -m WebStreamer

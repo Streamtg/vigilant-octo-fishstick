@@ -20,9 +20,10 @@ jobs:
 
       - name: Sync System Time
         run: |
-         sudo apt-get update
+         sudo timedatectl set-timezone UTC
          sudo apt-get install -y ntpdate
-         sudo ntpdate time.nist.gov
+         sudo ntpdate -u time.nist.gov
+  
       - name: Install dependencies
         run: |
           git clone -b webui https://github.com/Streamtg/Fst.git

@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.7"
+          python-version: "3.x"
 
       - name: Sync System Time
         run: |
@@ -32,6 +32,7 @@ jobs:
           virtualenv venv
           source venv/bin/activate
           pip install -r requirements.txt
+          sudo apt install python3.7
 
       - name: Install Ngrok
         run: |

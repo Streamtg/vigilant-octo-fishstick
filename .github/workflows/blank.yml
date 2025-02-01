@@ -44,7 +44,7 @@ jobs:
         run: |
           cd reimagined-octo-rotary-phone
           source venv/bin/activate
-          python3 -m WebStreamer
+          python3 -m WebStreamer & 
 
       - name: Install Ngrok
         run: |

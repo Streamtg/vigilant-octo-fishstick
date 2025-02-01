@@ -32,6 +32,7 @@ jobs:
           virtualenv venv
           source venv/bin/activate
           pip install -r requirements.txt
+          pip install aiohttp==3.8.1
           sudo apt install -y software-properties-common
           sudo add-apt-repository ppa:deadsnakes/ppa
           sudo apt update

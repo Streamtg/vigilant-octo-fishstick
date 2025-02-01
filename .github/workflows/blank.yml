@@ -1,4 +1,4 @@
-name: Deploy Telegram Bot
+name: Deploy
 
 on:
   push:
@@ -20,20 +20,34 @@ jobs:
 
       - name: Install dependencies
         run: |
-          git clone https://github.com/Streamtg/symmetrical-journey
-          cd symmetrical-journey
+          git clone https://github.com/Streamtg/Fst/tree/webui
+          cd Fst
           pip install virtualenv
           virtualenv -p /usr/bin/python3 venv
           . ./venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
+          run: python3 -m WebStreamer
       - name: Run Bot
         env:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          BLOGGER_API_KEY: ${{ secrets.BLOGGER_API_KEY }}
-          BLOG_ID: ${{ secrets.BLOG_ID }}
-        run: python3 -m bot
+          PORT: ${{ secrets.PORT }}
+          BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+          FQDN: ${{ secrets.FQDN }}
+      - name: Install Ngrok
+        run: |
+         curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+         | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+         && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+         | sudo tee /etc/apt/sources.list.d/ngrok.list \
+         && sudo apt update \
+         && sudo apt install ngrok
+      - name: Configure Ngrok
+        run: |
+         ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+
+      - name: Start Ngrok HTTP with custom URL
+        run: |
+         ngrok http --url=ready-unlikely-osprey.ngrok-free.app 8080

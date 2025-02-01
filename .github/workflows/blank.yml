@@ -18,6 +18,11 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Sync System Time
+        run: |
+         sudo apt-get update
+         sudo apt-get install -y ntpdate
+         sudo ntpdate time.nist.gov
       - name: Install dependencies
         run: |
           git clone -b webui https://github.com/Streamtg/Fst.git

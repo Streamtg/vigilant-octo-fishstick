@@ -26,6 +26,7 @@ jobs:
           pip install virtualenv
           virtualenv -p /usr/bin/python3 venv
           . ./venv/bin/activate
+          sudo apt install python3.12-dev
           sudo apt update && sudo apt install -y ntpdate
           python -m pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt

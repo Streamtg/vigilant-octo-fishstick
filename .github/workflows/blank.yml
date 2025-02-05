@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install virtualenv
-          git clone https://github.com/Streamtg/Fst/tree/v2.0
+          git clone https://github.com/Streamtg/Fst/tree/v2.0.git
           cd Fsb
           virtualenv -p /usr/bin/python3 venv
           . ./venv/bin/activate

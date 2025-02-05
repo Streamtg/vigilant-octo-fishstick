@@ -45,4 +45,4 @@ jobs:
           echo "PORT=8080" >> $GITHUB_ENV
 
       - name: Run the bot
-        run: nohup python bot.py &
+        run: nohup python bot.py

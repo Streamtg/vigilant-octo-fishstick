@@ -46,5 +46,6 @@ jobs:
 
       - name: Run the bot
         run: |
+          rm -f TelegramFileBot.session TelegramFileBot.session-journal
           sleep 5
           nohup python bot.py

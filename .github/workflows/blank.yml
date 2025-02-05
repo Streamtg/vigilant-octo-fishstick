@@ -31,6 +31,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt
           pip install --upgrade motor pymongo
+          pip install -U pyrogram tgcrypto aiohttp
           pip install dnspython
           sudo ntpdate pool.ntp.org
           sudo timedatectl set-ntp true

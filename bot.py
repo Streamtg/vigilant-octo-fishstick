@@ -1,9 +1,9 @@
 import time
-time.sleep(5)  # Pausa antes de iniciar para evitar desincronización
 import os
 import logging
 import asyncio
 from pyrogram import Client, filters
+from pyrogram.errors import BadMsgNotification
 import requests
 from aiohttp import web
 
@@ -19,10 +19,9 @@ PORT = int(os.getenv("PORT", 8080))
 
 logging.basicConfig(level=logging.INFO)
 
-# Inicializar el bot
-bot = Client("TelegramFileBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-
+# Variables globales
 file_storage = {}
+web_runner = None
 
 @bot.on_message(filters.video | filters.document | filters.audio | filters.photo)
 async def handle_files(client, message):
@@ -32,13 +31,9 @@ async def handle_files(client, message):
     file_size = file.file_size
     logging.info(f"Recibido archivo: {file_name} ({file_size} bytes)")
 
-    # Guardar en memoria
     file_storage[file_id] = {"file_name": file_name, "file_size": file_size}
-
-    # Generar enlace de streaming
     stream_url = f"https://{FQDN}/stream/{file_id}"
     
-    # Publicar en Blogger
     blogger_url = f"https://www.googleapis.com/blogger/v3/blogs/{BLOG_ID}/posts?key={BLOGGER_API_KEY}"
     post_data = {
         "title": file_name,
@@ -49,7 +44,6 @@ async def handle_files(client, message):
     blog_post = response.json()
     blog_link = blog_post.get("url", "No disponible")
     
-    # Enviar confirmación al usuario
     await message.reply_text(f"Tu archivo está disponible aquí: {blog_link}")
     logging.info(f"Publicado en Blogger: {blog_link}")
 
@@ -65,14 +59,52 @@ app = web.Application()
 app.router.add_get("/stream/{file_id}", stream_handler)
 
 async def run_web():
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    global web_runner
+    web_runner = web.AppRunner(app)
+    await web_runner.setup()
+    site = web.TCPSite(web_runner, "0.0.0.0", PORT)
     await site.start()
     logging.info(f"Servidor web iniciado en el puerto {PORT}")
 
 async def main():
-    await asyncio.gather(bot.start(), run_web())
+    max_retries = 3
+    retry_delay = 5
+    bot_instance = None
+    
+    try:
+        for attempt in range(max_retries):
+            try:
+                bot_instance = Client(
+                    "TelegramFileBot",
+                    api_id=API_ID,
+                    api_hash=API_HASH,
+                    bot_token=BOT_TOKEN
+                )
+                
+                await bot_instance.start()
+                logging.info("Conexión con Telegram establecida correctamente")
+                break
+            except BadMsgNotification as e:
+                if attempt < max_retries - 1:
+                    logging.warning(f"Error de sincronización temporal (intento {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(retry_delay)
+                else:
+                    logging.error("No se pudo sincronizar con los servidores de Telegram")
+                    raise
+
+        await run_web()
+        while True:
+            await asyncio.sleep(3600)  # Mantener corriendo indefinidamente
+            
+    except Exception as e:
+        logging.error(f"Error crítico: {str(e)}")
+    finally:
+        logging.info("Iniciando apagado seguro...")
+        if bot_instance and await bot_instance.is_initialized():
+            await bot_instance.stop()
+        if web_runner:
+            await web_runner.cleanup()
+        logging.info("Todos los servicios han sido detenidos correctamente")
 
 if __name__ == "__main__":
     asyncio.run(main())

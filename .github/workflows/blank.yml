@@ -24,15 +24,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install virtualenv
+          git clone https://github.com/Streamtg/Fst/tree/v2.0
+          cd Fsb
           virtualenv -p /usr/bin/python3 venv
           . ./venv/bin/activate
-          pip install pyrogram tgcrypto
-          sudo apt update && sudo apt install -y ntpdate
-          python -m pip install --upgrade pip
-          pip install --no-cache-dir -r requirements.txt
-          pip install --upgrade motor pymongo
-          pip install -U pyrogram tgcrypto aiohttp
-          pip install dnspython
           sudo ntpdate pool.ntp.org
           sudo timedatectl set-ntp true
       
@@ -53,4 +48,4 @@ jobs:
         run: |
           rm -f TelegramFileBot.session TelegramFileBot.session-journal
           sleep 11
-          nohup python bot.py
+          nohup python3 -m WebStreamer 

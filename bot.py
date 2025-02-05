@@ -1,3 +1,5 @@
+import time
+time.sleep(5)  # Pausa antes de iniciar para evitar desincronización
 import os
 import logging
 import asyncio

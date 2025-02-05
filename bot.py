@@ -2,6 +2,7 @@ import time
 import os
 import logging
 import asyncio
+import pyrogram
 from pyrogram import Client, filters
 from pyrogram.errors import BadMsgNotification
 import requests

@@ -1,13 +1,11 @@
 import os
 from pyrogram import Client, filters
-import motor.motor_asyncio
 import logging
 
 # Configuración de variables de entorno
 API_ID = os.getenv("API_ID")
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-MONGODB_URI = os.getenv("MONGODB_URI")
 BIN_CHANNEL = os.getenv("BIN_CHANNEL")
 BLOGGER_API_KEY = os.getenv("BLOGGER_API_KEY")
 BLOG_ID = os.getenv("BLOG_ID")
@@ -26,28 +24,26 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
-# Conexión a MongoDB
-db_client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
-database = db_client.get_database()
-
 @app.on_message(filters.command("start"))
 async def start(client, message):
     await message.reply_text("Bienvenido al Telegram File Stream Bot")
 
-@app.on_message(filters.all)
+@app.on_message(filters.document | filters.video | filters.audio | filters.photo |
+                 filters.voice | filters.animation | filters.sticker | filters.video_note |
+                 filters.contact | filters.location | filters.venue | filters.text)
 async def handle_media(client, message):
     file_id = None
-    file_name = None
-    
+    file_name = "unknown_file"
+
     if message.document:
         file_id = message.document.file_id
-        file_name = message.document.file_name
+        file_name = message.document.file_name or "document"
     elif message.video:
         file_id = message.video.file_id
         file_name = "video.mp4"
     elif message.audio:
         file_id = message.audio.file_id
-        file_name = message.audio.file_name
+        file_name = message.audio.file_name or "audio.mp3"
     elif message.photo:
         file_id = message.photo.file_id
         file_name = "image.jpg"
@@ -78,16 +74,9 @@ async def handle_media(client, message):
     else:
         await message.reply_text("Formato de archivo no soportado")
         return
-    
+
     file_link = f"https://{FQDN}/stream/{file_id}"
     await message.reply_text(f"Tu archivo está disponible aquí: {file_link}")
-    
-    # Guardar en MongoDB
-    await database.files.insert_one({
-        "file_id": file_id,
-        "file_name": file_name,
-        "url": file_link
-    })
 
 if __name__ == "__main__":
     app.run()

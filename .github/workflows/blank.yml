@@ -23,6 +23,7 @@ jobs:
       
       - name: Install dependencies
         run: |
+          sudo apt update && sudo apt install -y ntpdate
           python -m pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt
           pip install --upgrade motor pymongo

@@ -27,6 +27,8 @@ jobs:
           pip install --no-cache-dir -r requirements.txt
           pip install --upgrade motor pymongo
           pip install dnspython
+          sudo ntpdate time.google.com
+          sudo timedatectl set-ntp true
       
       - name: Set up environment variables
         run: |

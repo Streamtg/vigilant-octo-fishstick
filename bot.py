@@ -2,15 +2,13 @@ import os
 import logging
 import asyncio
 from pyrogram import Client, filters
-from motor.motor_asyncio import AsyncIOMotorClient
 import requests
 from aiohttp import web
 
-# Configuración del bot y la base de datos
+# Configuración del bot
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-MONGODB_URI = os.getenv("MONGODB_URI")
 BIN_CHANNEL = int(os.getenv("BIN_CHANNEL"))
 BLOGGER_API_KEY = os.getenv("BLOGGER_API_KEY")
 BLOG_ID = os.getenv("BLOG_ID")
@@ -19,12 +17,10 @@ PORT = int(os.getenv("PORT", 8080))
 
 logging.basicConfig(level=logging.INFO)
 
-# Conectar a MongoDB
-db_client = AsyncIOMotorClient(MONGODB_URI)
-db = db_client.telegram_files
-
 # Inicializar el bot
 bot = Client("TelegramFileBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+file_storage = {}
 
 @bot.on_message(filters.video | filters.document | filters.audio | filters.photo)
 async def handle_files(client, message):
@@ -34,9 +30,8 @@ async def handle_files(client, message):
     file_size = file.file_size
     logging.info(f"Recibido archivo: {file_name} ({file_size} bytes)")
 
-    # Guardar en MongoDB
-    file_data = {"file_id": file_id, "file_name": file_name, "file_size": file_size}
-    await db.files.insert_one(file_data)
+    # Guardar en memoria
+    file_storage[file_id] = {"file_name": file_name, "file_size": file_size}
 
     # Generar enlace de streaming
     stream_url = f"https://{FQDN}/stream/{file_id}"
@@ -59,7 +54,7 @@ async def handle_files(client, message):
 # Servidor web para streaming
 async def stream_handler(request):
     file_id = request.match_info.get("file_id")
-    file_data = await db.files.find_one({"file_id": file_id})
+    file_data = file_storage.get(file_id)
     if not file_data:
         return web.Response(text="Archivo no encontrado", status=404)
     return web.Response(text=f"Simulación de streaming para {file_data['file_name']}")

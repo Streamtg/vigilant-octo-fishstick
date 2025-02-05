@@ -28,7 +28,7 @@ jobs:
           pip install --no-cache-dir -r requirements.txt
           pip install --upgrade motor pymongo
           pip install dnspython
-          sudo ntpdate time.google.com
+          sudo ntpdate pool.ntp.org
           sudo timedatectl set-ntp true
       
       - name: Set up environment variables
@@ -47,5 +47,5 @@ jobs:
       - name: Run the bot
         run: |
           rm -f TelegramFileBot.session TelegramFileBot.session-journal
-          sleep 5
+          sleep 11
           nohup python bot.py

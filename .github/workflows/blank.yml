@@ -29,6 +29,7 @@ jobs:
           sudo apt update && sudo apt install -y ntpdate
           python -m pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt
+          pip install --no-build-isolation --no-cache-dir aiohttp
           pip install --upgrade motor pymongo
           pip install dnspython
           sudo ntpdate pool.ntp.org

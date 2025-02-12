@@ -1,51 +1,29 @@
-name: Deploy Telegram File Stream Bot
+name: Run Telegram Bot
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch: # Permite ejecutar manualmente
+  schedule:
+    - cron: '0 0 * * *' # Ejecuta diariamente a medianoche
 
 jobs:
-  deploy:
+  run-bot:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      
-      - name: Install dependencies
-        run: |
-          pip install virtualenv
-          git clone https://github.com/Streamtg/Fst/tree/v2.1
-          cd Fsb
-          virtualenv -p /usr/bin/python3 venv
-          . ./venv/bin/activate
-          sudo ntpdate pool.ntp.org
-          sudo timedatectl set-ntp true
-      
-      - name: Set up environment variables
-        run: |
-          echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
-          echo "API_ID=${{ secrets.API_ID }}" >> $GITHUB_ENV
-          echo "BIN_CHANNEL=${{ secrets.BIN_CHANNEL }}" >> $GITHUB_ENV
-          echo "BLOGGER_API_KEY=${{ secrets.BLOGGER_API_KEY }}" >> $GITHUB_ENV
-          echo "BLOG_ID=${{ secrets.BLOG_ID }}" >> $GITHUB_ENV
-          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
-          echo "FQDN=${{ secrets.FQDN }}" >> $GITHUB_ENV
-          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> $GITHUB_ENV
-          echo "NGROK_AUTH_TOKEN=${{ secrets.NGROK_AUTH_TOKEN }}" >> $GITHUB_ENV
-          echo "PORT=8080" >> $GITHUB_ENV
+        uses: actions/checkout@v3
 
-      - name: Run the bot
-        run: |
-          rm -f TelegramFileBot.session TelegramFileBot.session-journal
-          sleep 11
-          nohup python3 -m WebStreamer 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install node-fetch
+
+      - name: Run bot script
+        run: node index.js
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          BOT_SECRET: ${{ secrets.BOT_SECRET }}
+          SIA_SECRET: ${{ secrets.SIA_SECRET }}

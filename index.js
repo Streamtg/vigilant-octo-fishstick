@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 // ---------- Insert Your Data ---------- //
 const BOT_TOKEN = "5471483205:AAHOgy6y5LzxOJJ42znF4Kr_SfaW7Ic9oFc"; // Insert your bot token.

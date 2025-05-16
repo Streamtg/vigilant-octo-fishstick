@@ -1,4 +1,4 @@
-name: hjkhlljnljjj
+name: hofd
 on:
   schedule:
     - cron: '0 */12 * * *'
@@ -19,6 +19,6 @@ jobs:
         JOB: ${{ matrix.go }}
     steps:
     - name: Open Chrome
-      run: start chrome "https://www.dailymotion.com/video/x8l2zfe"
+      run: start chrome "https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html"
     - name: Wait for Chrome to load
       run: Start-Sleep -s 60 # Tiempo de espera para que Chrome cargue (ajústalo según sea necesario)

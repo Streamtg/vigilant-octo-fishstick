@@ -20,7 +20,7 @@ jobs:
     steps:
     - name: ok
       run: |
-        start chrome https://dai.ly/x8vyyeq
-        sleep 60  # Establece un tiempo de espera de 3 minutos (180 segundos)
+        start chrome https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html
+        sleep 120  # Establece un tiempo de espera de 3 minutos (180 segundos)
     - name: listo
       run: exit

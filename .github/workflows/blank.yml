@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
-      max-parallel: 10
+      max-parallel: 20
       fail-fast: false
       matrix:
         device: [

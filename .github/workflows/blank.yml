@@ -8,7 +8,7 @@ on:
 jobs:
   simulate-visitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       max-parallel: 2
       fail-fast: false
@@ -40,36 +40,48 @@ jobs:
           ];
 
           const referers = [
-            'https://t.co', 'https://www.facebook.com', 'https://l.instagram.com',
-            'https://twitter.com', 'https://reddit.com'
+            'https://www.facebook.com', 'https://twitter.com', 'https://t.co',
+            'https://l.instagram.com', 'https://reddit.com'
           ];
 
-          const mainURL = 'https://yoelmod.blogspot.com';
+          const targetURL = 'https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html';
 
           (async () => {
             const browsers = [chromium, firefox, webkit];
             const browserType = browsers[Math.floor(Math.random() * browsers.length)];
-            const browser = await browserType.launch({ headless: true });
+            const browser = await browserType.launch({ headless: false }); // usar false para evitar filtrado de bot
 
             const context = await browser.newContext({
               viewport: { width: 1366, height: 768 },
-              userAgent: userAgents[Math.floor(Math.random() * userAgents.length)],
-              extraHTTPHeaders: {
-                referer: referers[Math.floor(Math.random() * referers.length)]
-              }
+              userAgent: userAgents[Math.floor(Math.random() * userAgents.length)]
             });
 
             const page = await context.newPage();
 
-            try {
-              await page.goto(mainURL, { waitUntil: 'load', timeout: 60000 });
+            const referer = referers[Math.floor(Math.random() * referers.length)];
 
+            try {
+              // Visita primero la página del referer
+              await page.goto(referer, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+              // Simula navegación desde el referer al targetURL
+              await page.evaluate((url) => {
+                setTimeout(() => {
+                  window.location.href = url;
+                }, 3000);
+              }, targetURL);
+
+              // Espera a que cargue la página objetivo
+              await page.waitForNavigation({ waitUntil: 'load', timeout: 60000 });
+
+              // Simula comportamiento humano
               for (let i = 0; i < 5; i++) {
                 await page.mouse.move(Math.random() * 1300, Math.random() * 700);
                 await page.mouse.wheel(0, 500);
                 await page.waitForTimeout(Math.floor(Math.random() * 4000) + 1000);
               }
 
+              // Clic en enlace interno
               const links = await page.$$eval('a', anchors =>
                 anchors
                   .filter(a => a.href.includes('yoelmod.blogspot.com') && a.offsetParent !== null)
@@ -81,8 +93,8 @@ jobs:
                 await page.goto(randomLink, { waitUntil: 'load', timeout: 60000 });
                 await page.waitForTimeout(Math.floor(Math.random() * 10000) + 5000);
               }
-            } catch (_) {
-              // Silenciar errores
+            } catch (err) {
+              console.log("Error:", err);
             }
 
             await browser.close();

@@ -2,7 +2,7 @@ name: Simulate Human Interaction with Playwright
 
 on:
   schedule:
-    - cron: '0 */12 * * *' # Cada 12 horas
+    - cron: '0 */12 * * *'
   workflow_dispatch:
 
 jobs:
@@ -25,6 +25,7 @@ jobs:
         run: |
           npm init -y
           npm install playwright
+          npx playwright install chromium
 
       - name: Create simulate.js
         run: |

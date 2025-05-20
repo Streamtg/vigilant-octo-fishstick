@@ -2,7 +2,7 @@ name: Simulate Human Interaction with Puppeteer
 
 on:
   schedule:
-    - cron: '0 */12 * * *' # Cada 12 horas
+    - cron: '0 */12 * * *' # Ejecuta cada 12 horas
   workflow_dispatch: # Permite ejecución manual
 
 jobs:
@@ -13,7 +13,7 @@ jobs:
       max-parallel: 3
       fail-fast: false
       matrix:
-        flag: [A, B, C, D] # Puedes ampliar esta matriz si lo deseas
+        flag: [A, B, C, D]
 
     steps:
       - name: Set up Node.js
@@ -22,44 +22,35 @@ jobs:
           node-version: '18'
 
       - name: Create package.json
-        run: echo '{"dependencies": {"puppeteer": "^21.3.6"}}' > package.json
+        run: echo '{ "dependencies": { "puppeteer": "^21.3.6" } }' > package.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Create simulate.js file
+      - name: Create simulate.js
         run: |
-          cat << 'EOF' > simulate.js
-          const puppeteer = require('puppeteer');
+          echo "const puppeteer = require('puppeteer');" > simulate.js
+          echo "" >> simulate.js
+          echo "(async () => {" >> simulate.js
+          echo "  const browser = await puppeteer.launch({" >> simulate.js
+          echo "    headless: true," >> simulate.js
+          echo "    args: ['--no-sandbox', '--disable-setuid-sandbox']" >> simulate.js
+          echo "  });" >> simulate.js
+          echo "  const page = await browser.newPage();" >> simulate.js
+          echo "  await page.setViewport({ width: 1280, height: 800 });" >> simulate.js
+          echo "  await page.setUserAgent('Mozilla/5.0 AppleWebKit/537.36 Chrome Safari');" >> simulate.js
+          echo "  await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', { waitUntil: 'networkidle2' });" >> simulate.js
+          echo "  const minTime = 60000;" >> simulate.js
+          echo "  const maxTime = 90000;" >> simulate.js
+          echo "  const randomTime = Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;" >> simulate.js
+          echo "  const steps = Math.floor(randomTime / 3000);" >> simulate.js
+          echo "  for (let i = 0; i < steps; i++) {" >> simulate.js
+          echo "    await page.mouse.move(Math.random() * 1280, Math.random() * 800);" >> simulate.js
+          echo "    await page.evaluate(() => window.scrollBy(0, Math.floor(Math.random() * 400)));" >> simulate.js
+          echo "    await page.waitForTimeout(3000);" >> simulate.js
+          echo "  }" >> simulate.js
+          echo "  await browser.close();" >> simulate.js
+          echo "})();" >> simulate.js
 
-          (async () => {
-            const browser = await puppeteer.launch({
-              headless: true,
-              args: ['--no-sandbox', '--disable-setuid-sandbox']
-            });
-
-            const page = await browser.newPage();
-            await page.setViewport({ width: 1280, height: 800 });
-            await page.setUserAgent('Mozilla/5.0 AppleWebKit/537.36 Chrome Safari');
-
-            await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', {
-              waitUntil: 'networkidle2'
-            });
-
-            const minTime = 60000; // 60s
-            const maxTime = 90000; // 90s
-            const randomTime = Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
-            const steps = Math.floor(randomTime / 3000);
-
-            for (let i = 0; i < steps; i++) {
-              await page.mouse.move(Math.random() * 1280, Math.random() * 800);
-              await page.evaluate(() => window.scrollBy(0, Math.floor(Math.random() * 400)));
-              await page.waitForTimeout(3000);
-            }
-
-            await browser.close();
-          })();
-          EOF
-
-      - name: Run Puppeteer script
+      - name: Run Puppeteer Script
         run: node simulate.js

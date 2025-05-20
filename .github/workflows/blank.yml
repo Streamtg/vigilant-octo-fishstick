@@ -1,4 +1,4 @@
-name: Simulate Human Interaction with Playwright
+name: Simulate Real Visitor with Playwright
 
 on:
   schedule:
@@ -6,14 +6,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  simulate-interaction:
+  simulate-visitor:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
-      max-parallel: 3
+      max-parallel: 2
       fail-fast: false
       matrix:
-        flag: [A, B, C, D]
+        flag: [A, B, C]
 
     steps:
       - name: Set up Node.js
@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Playwright
+      - name: Install Playwright and Chromium
         run: |
           npm init -y
           npm install playwright
@@ -29,25 +29,43 @@ jobs:
 
       - name: Create simulate.js
         run: |
-          printf '%s\n' \
-          "const { chromium } = require('playwright');" \
-          "" \
-          "(async () => {" \
-          "  const browser = await chromium.launch({ headless: true });" \
-          "  const page = await browser.newPage();" \
-          "  await page.setViewportSize({ width: 1280, height: 800 });" \
-          "  await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', { waitUntil: 'networkidle' });" \
-          "  const minTime = 60000;" \
-          "  const maxTime = 90000;" \
-          "  const randomTime = Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;" \
-          "  const steps = Math.floor(randomTime / 3000);" \
-          "  for (let i = 0; i < steps; i++) {" \
-          "    await page.mouse.move(Math.random() * 1280, Math.random() * 800);" \
-          "    await page.mouse.wheel(0, Math.floor(Math.random() * 400));" \
-          "    await page.waitForTimeout(3000);" \
-          "  }" \
-          "  await browser.close();" \
-          "})();" > simulate.js
+          cat <<'EOF' > simulate.js
+          const { chromium } = require('playwright');
 
-      - name: Run Script
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 1366, height: 768 },
+              userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            });
+            const page = await context.newPage();
+
+            await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', { waitUntil: 'networkidle' });
+
+            // Simular scroll lento y movimiento de mouse
+            for (let i = 0; i < 5; i++) {
+              await page.mouse.move(Math.random() * 1300, Math.random() * 700);
+              await page.mouse.wheel(0, 500);
+              await page.waitForTimeout(Math.floor(Math.random() * 4000) + 1000);
+            }
+
+            // Buscar y hacer clic en un enlace interno del blog
+            const links = await page.$$eval('a', anchors =>
+              anchors
+                .filter(a => a.href.includes('yoelmod.blogspot.com') && a.offsetParent !== null)
+                .map(a => a.href)
+            );
+
+            if (links.length > 0) {
+              const randomLink = links[Math.floor(Math.random() * links.length)];
+              console.log('Clic en:', randomLink);
+              await page.goto(randomLink, { waitUntil: 'domcontentloaded' });
+              await page.waitForTimeout(Math.floor(Math.random() * 10000) + 5000); // quedarse 5–15 segundos
+            }
+
+            await browser.close();
+          })();
+          EOF
+
+      - name: Run simulate.js
         run: node simulate.js

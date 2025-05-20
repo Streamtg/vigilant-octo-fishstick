@@ -1,9 +1,9 @@
-name: Simulate Human Interaction with Matrix
+name: Simulate Human Interaction with Puppeteer
 
 on:
   schedule:
-    - cron: '0 */12 * * *'
-  workflow_dispatch:
+    - cron: '0 */12 * * *' # Cada 12 horas
+  workflow_dispatch: # Permite ejecución manual
 
 jobs:
   simulate-interaction:
@@ -13,7 +13,7 @@ jobs:
       max-parallel: 3
       fail-fast: false
       matrix:
-        flag: [A, B, C, D]
+        flag: [A, B, C, D] # Puedes ampliar esta matriz si lo deseas
 
     steps:
       - name: Set up Node.js
@@ -27,22 +27,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Puppeteer Script
+      - name: Create simulate.js file
         run: |
-          node -e "
+          cat << 'EOF' > simulate.js
           const puppeteer = require('puppeteer');
+
           (async () => {
-            const browser = await puppeteer.launch({ 
+            const browser = await puppeteer.launch({
               headless: true,
-              args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+              args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
+
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 800 });
             await page.setUserAgent('Mozilla/5.0 AppleWebKit/537.36 Chrome Safari');
-            await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', { waitUntil: 'networkidle2' });
 
-            const minTime = 60 * 1000;
-            const maxTime = 90 * 1000;
+            await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', {
+              waitUntil: 'networkidle2'
+            });
+
+            const minTime = 60000; // 60s
+            const maxTime = 90000; // 90s
             const randomTime = Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
             const steps = Math.floor(randomTime / 3000);
 
@@ -53,4 +58,8 @@ jobs:
             }
 
             await browser.close();
-          })"
+          })();
+          EOF
+
+      - name: Run Puppeteer script
+        run: node simulate.js

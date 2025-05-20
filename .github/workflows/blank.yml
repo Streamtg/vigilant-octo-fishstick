@@ -8,21 +8,28 @@ on:
 jobs:
   simulate-visitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      max-parallel: 1
-      fail-fast: false
-      matrix:
-        go: [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-        flag: [A, B, C, D, E, F, G, H, I]
+    timeout-minutes: 15
 
     steps:
+      - name: Install system dependencies for Playwright
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libxss1 libasound2 libnss3 libxshmfence1 \
+            libgbm1 libxcomposite1 libxrandr2 libxdamage1 libxtst6 libx11-xcb1 \
+            libdrm2 libxinerama1 libatk-bridge2.0-0 libcups2 libx11-dev \
+            libegl1 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libglu1-mesa \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav \
+            gstreamer1.0-plugins-ugly gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-gl \
+            gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-plugins-bad \
+            libopus0 libvpx7 libwoff1 libevent-2.1-7 libflite1 libsecret-1-0 \
+            libharfbuzz-icu0 libavif13 libx264-163
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Install Playwright and Chromium
+      - name: Install Playwright and Axios
         run: |
           npm init -y
           npm install playwright axios
@@ -35,7 +42,7 @@ jobs:
           const axios = require('axios');
 
           const urls = [
-            'https://yoelmod.blogspot.com'
+            'https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html'
           ];
 
           const referers = [
@@ -50,22 +57,19 @@ jobs:
           };
 
           (async () => {
-            // Obtener lista de proxys (HTTP)
             let proxyList = [];
             try {
               const res = await axios.get('https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=elite');
               proxyList = res.data.split('\n').filter(p => p.includes(':'));
             } catch (e) {
-              console.error('No se pudo obtener la lista de proxies.');
               return;
             }
 
             const proxy = proxyList[Math.floor(Math.random() * proxyList.length)].trim();
             const referer = referers[Math.floor(Math.random() * referers.length)];
             const targetURL = urls[Math.floor(Math.random() * urls.length)];
-            const browsers = [chromium, firefox, webkit];
             const browserName = ['chromium', 'firefox', 'webkit'][Math.floor(Math.random() * 3)];
-            const browserEngine = browsers[['chromium', 'firefox', 'webkit'].indexOf(browserName)];
+            const browserEngine = { chromium, firefox, webkit }[browserName];
 
             const browser = await browserEngine.launch({
               headless: true,
@@ -91,9 +95,7 @@ jobs:
               }
 
               const links = await page.$$eval('a', anchors =>
-                anchors
-                  .filter(a => a.href.includes('yoelmod.blogspot.com') && a.offsetParent !== null)
-                  .map(a => a.href)
+                anchors.filter(a => a.href.includes('yoelmod.blogspot.com') && a.offsetParent !== null).map(a => a.href)
               );
 
               if (links.length > 0) {
@@ -101,10 +103,7 @@ jobs:
                 await page.goto(randomLink, { waitUntil: 'domcontentloaded' });
                 await page.waitForTimeout(Math.floor(Math.random() * 7000) + 3000);
               }
-            } catch (e) {
-              // Error silenciado para evitar que falle el workflow
-            }
-
+            } catch (e) {}
             await browser.close();
           })();
           EOF

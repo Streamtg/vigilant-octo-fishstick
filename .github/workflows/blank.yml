@@ -2,40 +2,48 @@ name: Simulate Real Visitor with Device Emulation
 
 on:
   schedule:
-    - cron: '0 */12 * * *'
+    - cron: '0 */12 * * *'  # Cada 12 horas
   workflow_dispatch:
 
 jobs:
   simulate-visitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
-      fail-fast: false
       max-parallel: 20
+      fail-fast: false
       matrix:
-        device: ['Pixel 5']
         go: [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.1, 2.2]
         flag: [A, B, C, D, E, F, G, H, I, G, K, L, M, N, Ñ, O, P, K]
 
     steps:
-      - name: Checkout repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
       - name: Install Playwright
-        run: npm install playwright
+        run: |
+          npm install playwright
+          npx playwright install --with-deps
 
-      - name: Run Visitor Simulation
+      - name: Run Visitor Simulation with Random Devices
         run: |
           node -e "
             const { chromium, devices } = require('playwright');
             (async () => {
+              const deviceList = [
+                'Pixel 5', 'iPhone 12', 'iPhone SE', 'Galaxy S9+', 'iPad Pro 11',
+                'iPhone 13 Mini', 'Galaxy Note 10', 'Nexus 6P', 'iPhone XR', 'Pixel 2 XL'
+              ];
+              const randomDevice = devices[deviceList[Math.floor(Math.random() * deviceList.length)]];
               const browser = await chromium.launch({ headless: true });
-              const context = await browser.newContext({ ...devices['Pixel 5'] });
+              const context = await browser.newContext({ ...randomDevice });
               const page = await context.newPage();
+
               await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', { waitUntil: 'domcontentloaded' });
 
               for (let i = 0; i < 4; i++) {
@@ -43,7 +51,10 @@ jobs:
                 await page.waitForTimeout(Math.floor(Math.random() * 3000) + 1000);
               }
 
-              const links = await page.$$eval('a', as => as.map(a => a.href).filter(href => href.startsWith('http') && !href.includes('blogger')));
+              const links = await page.$$eval('a', as => 
+                as.map(a => a.href).filter(href => href.startsWith('http') && !href.includes('blogger'))
+              );
+
               if (links.length > 0) {
                 const randomLink = links[Math.floor(Math.random() * links.length)];
                 await page.goto(randomLink, { waitUntil: 'load' });

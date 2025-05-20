@@ -14,41 +14,31 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          {{# combinaciones entre go y flag }}
           - go: 1.0
             flag: A
-          - go: 1.0
+          - go: 1.1
             flag: B
-          - go: 1.0
+          - go: 1.2
             flag: C
-          - go: 1.1
+          - go: 1.3
             flag: D
-          - go: 1.1
+          - go: 1.4
             flag: E
-          - go: 1.2
+          - go: 1.5
             flag: F
-          - go: 1.2
-            flag: G
-          - go: 1.3
-            flag: H
-          - go: 1.3
-            flag: I
-          - go: 1.4
-            flag: G
-          - go: 1.4
-            flag: K
-          - go: 1.5
-            flag: L
-          - go: 1.5
-            flag: M
           - go: 1.6
-            flag: N
-          - go: 1.6
-            flag: Ñ
+            flag: G
           - go: 1.7
-            flag: O
-          {{/ puedes seguir duplicando combinaciones hasta un máximo de 256 }}
-        
+            flag: H
+          - go: 1.8
+            flag: I
+          - go: 1.9
+            flag: J
+          - go: 2.1
+            flag: K
+          - go: 2.2
+            flag: L
+
     steps:
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -68,7 +58,7 @@ jobs:
 
           const userAgents = {
             chromium: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            firefox: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0',
+            firefox: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:114.0) Gecko/20100101 Firefox/114.0',
             webkit: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
           };
 

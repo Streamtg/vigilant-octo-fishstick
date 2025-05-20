@@ -63,7 +63,7 @@ jobs:
             });
             const page = await context.newPage();
 
-            await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', { waitUntil: 'networkidle' });
+            await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'networkidle' });
 
             for (let i = 0; i < 5; i++) {
               await page.mouse.move(Math.random() * 1300, Math.random() * 700);

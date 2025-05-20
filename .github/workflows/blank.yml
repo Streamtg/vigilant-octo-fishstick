@@ -1,9 +1,9 @@
-name: Simulate Human Interaction with Puppeteer
+name: Simulate Human Interaction with Playwright
 
 on:
   schedule:
     - cron: '0 */12 * * *' # Cada 12 horas
-  workflow_dispatch: # Manual
+  workflow_dispatch:
 
 jobs:
   simulate-interaction:
@@ -21,37 +21,32 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Create package.json
-        run: echo '{ "dependencies": { "puppeteer": "^21.3.6" } }' > package.json
-
-      - name: Install dependencies
-        run: npm install
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install playwright
 
       - name: Create simulate.js
         run: |
           printf '%s\n' \
-          "const puppeteer = require('puppeteer');" \
+          "const { chromium } = require('playwright');" \
           "" \
           "(async () => {" \
-          "  const browser = await puppeteer.launch({" \
-          "    headless: true," \
-          "    args: ['--no-sandbox', '--disable-setuid-sandbox']" \
-          "  });" \
+          "  const browser = await chromium.launch({ headless: true });" \
           "  const page = await browser.newPage();" \
-          "  await page.setViewport({ width: 1280, height: 800 });" \
-          "  await page.setUserAgent('Mozilla/5.0 AppleWebKit/537.36 Chrome Safari');" \
-          "  await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', { waitUntil: 'networkidle2' });" \
+          "  await page.setViewportSize({ width: 1280, height: 800 });" \
+          "  await page.goto('https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html', { waitUntil: 'networkidle' });" \
           "  const minTime = 60000;" \
           "  const maxTime = 90000;" \
           "  const randomTime = Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;" \
           "  const steps = Math.floor(randomTime / 3000);" \
           "  for (let i = 0; i < steps; i++) {" \
           "    await page.mouse.move(Math.random() * 1280, Math.random() * 800);" \
-          "    await page.evaluate(() => window.scrollBy(0, Math.floor(Math.random() * 400)));" \
+          "    await page.mouse.wheel(0, Math.floor(Math.random() * 400));" \
           "    await page.waitForTimeout(3000);" \
           "  }" \
           "  await browser.close();" \
           "})();" > simulate.js
 
-      - name: Run Puppeteer Script
+      - name: Run Script
         run: node simulate.js

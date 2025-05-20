@@ -47,14 +47,6 @@ jobs:
             flag: Ñ
           - go: 1.7
             flag: O
-          - go: 1.7
-            flag: P
-          - go: 1.8
-            flag: K
-          - go: 1.8
-            flag: B
-          - go: 1.9
-            flag: F
           {{/ puedes seguir duplicando combinaciones hasta un máximo de 256 }}
         
     steps:

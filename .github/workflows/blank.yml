@@ -51,7 +51,7 @@ jobs:
           (async () => {
             const browsers = [chromium, firefox, webkit];
             const browserType = browsers[Math.floor(Math.random() * browsers.length)];
-            const browser = await browserType.launch({ headless: false });
+            const browser = await browserType.launch({ headless: true });
 
             const context = await browser.newContext({
               viewport: { width: 1366, height: 768 },

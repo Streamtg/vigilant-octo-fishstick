@@ -13,32 +13,8 @@ jobs:
       max-parallel: 20
       fail-fast: false
       matrix:
-        include:
-          - go: 1.0
-            flag: A
-          - go: 1.1
-            flag: B
-          - go: 1.2
-            flag: C
-          - go: 1.3
-            flag: D
-          - go: 1.4
-            flag: E
-          - go: 1.5
-            flag: F
-          - go: 1.6
-            flag: G
-          - go: 1.7
-            flag: H
-          - go: 1.8
-            flag: I
-          - go: 1.9
-            flag: J
-          - go: 2.1
-            flag: K
-          - go: 2.2
-            flag: L
-
+        go: [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.1, 2.2]
+        flag: [A, B, C, D, E, F, G, H, I, G, K, L, M, N, Ñ, O, P, K]
     steps:
       - name: Set up Node.js
         uses: actions/setup-node@v4

@@ -10,11 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
-      max-parallel: 20
+      max-parallel: 2
       fail-fast: false
       matrix:
-        go: [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.1, 2.2]
-        flag: [A, B, C, D, E, F, G, H, I, G, K, L, M, N, Ñ, O, P, K]
+        go: [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+        flag: [A, B, C, D, E, F, G, H, I]
+
     steps:
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -30,40 +31,48 @@ jobs:
       - name: Create simulate.js
         run: |
           cat <<'EOF' > simulate.js
-          const { chromium, firefox, webkit } = require('playwright');
-
-          const userAgents = {
-            chromium: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            firefox: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:114.0) Gecko/20100101 Firefox/114.0',
-            webkit: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
-          };
-
-          const referers = [
-            'https://www.facebook.com',
-            'https://twitter.com',
-            'https://www.instagram.com',
-            'https://t.co',
-            'https://www.reddit.com',
-          ];
+          const playwright = require('playwright');
 
           (async () => {
-            const engines = [chromium, firefox, webkit];
-            const index = Math.floor(Math.random() * engines.length);
-            const browserType = engines[index];
-            const userAgent = Object.values(userAgents)[index];
+            const userAgents = [
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+              'Mozilla/5.0 (Windows NT 10.0; rv:115.0) Gecko/20100101 Firefox/115.0',
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15'
+            ];
+
+            const referers = [
+              'https://www.facebook.com',
+              'https://twitter.com',
+              'https://www.instagram.com',
+              'https://t.co',
+              'https://www.reddit.com',
+              'https://www.google.com/search?q=netflix+apk',
+              'https://duckduckgo.com/?q=netflix+mod+apk'
+            ];
+
+            const browserTypes = ['chromium', 'firefox', 'webkit'];
+            const browserType = browserTypes[Math.floor(Math.random() * browserTypes.length)];
+            const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
             const referer = referers[Math.floor(Math.random() * referers.length)];
 
-            const browser = await browserType.launch({ headless: true });
+            console.log('Navegador:', browserType);
+            console.log('User-Agent:', userAgent);
+            console.log('Referer:', referer);
+
+            const browser = await playwright[browserType].launch({ headless: true });
+
             const context = await browser.newContext({
               viewport: { width: 1366, height: 768 },
-              userAgent: userAgent,
+              userAgent,
               extraHTTPHeaders: {
-                referer: referer,
-              },
+                referer
+              }
             });
-            const page = await context.newPage();
 
-            await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'networkidle' });
+            const page = await context.newPage();
+            const mainURL = 'https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html';
+            console.log('Visitando:', mainURL);
+            await page.goto(mainURL, { waitUntil: 'networkidle' });
 
             for (let i = 0; i < 5; i++) {
               await page.mouse.move(Math.random() * 1300, Math.random() * 700);
@@ -83,6 +92,10 @@ jobs:
               await page.goto(randomLink, { waitUntil: 'domcontentloaded' });
               await page.waitForTimeout(Math.floor(Math.random() * 10000) + 5000);
             }
+
+            const delay = Math.floor(Math.random() * 10000) + 5000;
+            console.log('Esperando', delay, 'ms antes de cerrar el navegador');
+            await page.waitForTimeout(delay);
 
             await browser.close();
           })();

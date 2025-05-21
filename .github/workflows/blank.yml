@@ -1,4 +1,4 @@
-name: Simulate Real Visitor with Playwright
+name: Simulate Real Visitor via Google Search
 
 on:
   schedule:
@@ -8,13 +8,13 @@ on:
 jobs:
   simulate-visitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
-      max-parallel: 10
+      max-parallel: 5
       fail-fast: false
       matrix:
-        go: [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-        flag: [A, B, C, D, E, F, G, H, I]
+        go: [1.0, 1.1, 1.2, 1.3]
+        flag: [A, B, C, D]
 
     steps:
       - name: Set up Node.js
@@ -22,18 +22,16 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Playwright and all browsers
+      - name: Install Playwright and Browsers
         run: |
           npm init -y
           npm install playwright
           npx playwright install chromium
-          npx playwright install firefox
-          npx playwright install webkit
 
       - name: Create simulate.js
         run: |
           cat <<'EOF' > simulate.js
-          const { chromium, firefox, webkit } = require('playwright');
+          const { chromium } = require('playwright');
 
           const userAgents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
@@ -41,54 +39,55 @@ jobs:
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15'
           ];
 
-          const referers = [
-            'https://www.facebook.com', 'https://twitter.com', 'https://t.co',
-            'https://l.instagram.com', 'https://reddit.com'
-          ];
-
-          const targetURL = 'https://yoelmod.blogspot.com/2022/05/netflix-premium-free-mod-apk.html';
+          const searchQuery = 'netflix premium mod apk yoelmod';
+          const targetDomain = 'yoelmod.blogspot.com';
 
           (async () => {
-            const browsers = [chromium, firefox, webkit];
-            const browserType = browsers[Math.floor(Math.random() * browsers.length)];
-            const browser = await browserType.launch({ headless: true });
-
+            const browser = await chromium.launch({ headless: false });
             const context = await browser.newContext({
               viewport: { width: 1366, height: 768 },
               userAgent: userAgents[Math.floor(Math.random() * userAgents.length)]
             });
 
             const page = await context.newPage();
-            const referer = referers[Math.floor(Math.random() * referers.length)];
 
             try {
-              await page.goto(referer, { waitUntil: 'domcontentloaded', timeout: 60000 });
+              await page.goto(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, {
+                waitUntil: 'domcontentloaded', timeout: 60000
+              });
 
-              await page.evaluate((url) => {
-                setTimeout(() => { window.location.href = url; }, 3000);
-              }, targetURL);
+              await page.waitForTimeout(4000);
 
-              await page.waitForNavigation({ waitUntil: 'load', timeout: 60000 });
-
-              for (let i = 0; i < 5; i++) {
-                await page.mouse.move(Math.random() * 1300, Math.random() * 700);
-                await page.mouse.wheel(0, 500);
-                await page.waitForTimeout(Math.floor(Math.random() * 4000) + 1000);
+              const links = await page.$$('a');
+              for (let link of links) {
+                const href = await link.getAttribute('href');
+                if (href && href.includes(targetDomain)) {
+                  await link.click();
+                  break;
+                }
               }
 
-              const links = await page.$$eval('a', anchors =>
-                anchors
-                  .filter(a => a.href.includes('yoelmod.blogspot.com') && a.offsetParent !== null)
-                  .map(a => a.href)
+              await page.waitForLoadState('load', { timeout: 60000 });
+              await page.waitForTimeout(10000); // esperar 10s después de cargar
+
+              for (let i = 0; i < 6; i++) {
+                await page.mouse.move(Math.random() * 1300, Math.random() * 700);
+                await page.mouse.wheel(0, 300 + Math.random() * 300);
+                await page.waitForTimeout(Math.floor(Math.random() * 5000) + 2000);
+              }
+
+              const innerLinks = await page.$$eval('a', anchors =>
+                anchors.filter(a => a.href.includes('yoelmod.blogspot.com') && a.offsetParent !== null).map(a => a.href)
               );
 
-              if (links.length > 0) {
-                const randomLink = links[Math.floor(Math.random() * links.length)];
-                await page.goto(randomLink, { waitUntil: 'load', timeout: 60000 });
-                await page.waitForTimeout(Math.floor(Math.random() * 10000) + 5000);
+              if (innerLinks.length > 0) {
+                const nextLink = innerLinks[Math.floor(Math.random() * innerLinks.length)];
+                await page.goto(nextLink, { waitUntil: 'load', timeout: 60000 });
+                await page.waitForTimeout(10000);
               }
+
             } catch (err) {
-              console.log("Error:", err);
+              console.error('Error during simulation:', err);
             }
 
             await browser.close();

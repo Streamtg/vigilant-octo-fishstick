@@ -1,9 +1,9 @@
-name: Blog Traffic Simulator (Cookies + Rotación UA)
+name: Blog Traffic Simulator (Cookies + UA Fix)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"  # Cada hora
+    - cron: "0 * * * *"
 
 jobs:
   simulate-visits:
@@ -24,7 +24,8 @@ jobs:
           cat << 'EOF' > visit.js
           const puppeteer = require('puppeteer');
 
-          // Lista de agentes de usuario populares
+          const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
           const userAgents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
@@ -37,7 +38,6 @@ jobs:
             const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
             const page = await browser.newPage();
 
-            // Set cookie simulada (puedes ajustar si usas un dominio personalizado)
             const cookie = {
               name: "visitor_id",
               value: "simulado_" + Date.now(),
@@ -75,7 +75,7 @@ jobs:
               console.log("Visitando:", url, "con", userAgent);
               try {
                 await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-                await page.waitForTimeout(Math.floor(Math.random() * 4000) + 3000);
+                await delay(Math.floor(Math.random() * 4000) + 3000); // Espera 3-7 segundos
                 visitasOk++;
               } catch (error) {
                 console.log("Error al visitar", url, error.message);

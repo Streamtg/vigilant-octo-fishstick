@@ -1,4 +1,4 @@
-name: Blog Traffic Simulator
+name: Blog Traffic Simulator (No Proxy)
 
 on:
   workflow_dispatch:
@@ -8,31 +8,45 @@ on:
 jobs:
   simulate-visits:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Instalar dependencias
         run: |
           sudo apt update
           sudo apt install -y curl jq
 
-      - name: Visit Blog without Proxy
+      - name: Obtener URLs del blog
+        id: get-urls
         run: |
-          # Obtener todos los enlaces del blog principal
-          URLS=$(curl -s https://yoelmod.blogspot.com | grep -oP '(?<=href=")[^"]+' | grep '^https://yoelmod.blogspot.com' | sort -u)
-          echo "$URLS" > urls.txt
-          
-          # Seleccionar 5 URLs aleatorios
+          curl -s https://yoelmod.blogspot.com > index.html
+          grep -oP '(?<=href=")https://yoelmod\.blogspot\.com[^"]+' index.html | sort -u > urls.txt
+
+      - name: Simular visitas como humano real
+        run: |
+          USER_AGENTS=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+            "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0)"
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)"
+            "Mozilla/5.0 (Linux; Android 11)"
+          )
+
+          # Selecciona 5 URLs aleatorias del blog
           RANDOM_URLS=$(shuf -n 5 urls.txt)
 
           for URL in $RANDOM_URLS; do
-            echo "Visitando $URL sin proxy"
-            curl -A "$(shuf -n 1 -e \
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' \
-              'Mozilla/5.0 (Linux; Android 11)' \
-              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')" \
-              -e "https://www.google.com" -L "$URL" \
-              --connect-timeout 10 --max-time 25 || echo "Fallo al visitar $URL"
+            AGENT="${USER_AGENTS[$((RANDOM % ${#USER_AGENTS[@]}))]}"
+            echo "Visitando $URL con agente: $AGENT"
+
+            curl -A "$AGENT" \
+                 -e "https://www.google.com/" \
+                 -L "$URL" \
+                 --connect-timeout 10 \
+                 --max-time 20 \
+                 -s -o /dev/null || echo "Fallo al visitar $URL"
+            
+            # Pausa entre visitas para parecer más humano
+            sleep $((RANDOM % 5 + 3))
           done

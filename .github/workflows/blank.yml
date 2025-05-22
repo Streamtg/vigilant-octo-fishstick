@@ -1,52 +1,93 @@
-name: Blog Traffic Simulator (No Proxy)
+name: Blog Traffic Simulator (Cookies + Rotación UA)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"  # Corre cada hora
+    - cron: "0 * * * *"  # Cada hora
 
 jobs:
   simulate-visits:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Instalar dependencias
+      - name: Instalar Node.js y Puppeteer
         run: |
           sudo apt update
-          sudo apt install -y curl jq
+          sudo apt install -y nodejs npm
+          npm install puppeteer
 
-      - name: Obtener URLs del blog
-        id: get-urls
+      - name: Crear script de navegación
         run: |
-          curl -s https://yoelmod.blogspot.com > index.html
-          grep -oP '(?<=href=")https://yoelmod\.blogspot\.com[^"]+' index.html | sort -u > urls.txt
+          cat << 'EOF' > visit.js
+          const puppeteer = require('puppeteer');
 
-      - name: Simular visitas como humano real
-        run: |
-          USER_AGENTS=(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-            "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0)"
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)"
+          // Lista de agentes de usuario populares
+          const userAgents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+            "Mozilla/5.0 (X11; Linux x86_64)",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)",
             "Mozilla/5.0 (Linux; Android 11)"
-          )
+          ];
 
-          # Selecciona 5 URLs aleatorias del blog
-          RANDOM_URLS=$(shuf -n 5 urls.txt)
+          (async () => {
+            const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+            const page = await browser.newPage();
 
-          for URL in $RANDOM_URLS; do
-            AGENT="${USER_AGENTS[$((RANDOM % ${#USER_AGENTS[@]}))]}"
-            echo "Visitando $URL con agente: $AGENT"
+            // Set cookie simulada (puedes ajustar si usas un dominio personalizado)
+            const cookie = {
+              name: "visitor_id",
+              value: "simulado_" + Date.now(),
+              domain: ".blogspot.com",
+              path: "/",
+              httpOnly: false,
+              secure: false
+            };
+            await page.setCookie(cookie);
 
-            curl -A "$AGENT" \
-                 -e "https://www.google.com/" \
-                 -L "$URL" \
-                 --connect-timeout 10 \
-                 --max-time 20 \
-                 -s -o /dev/null || echo "Fallo al visitar $URL"
-            
-            # Pausa entre visitas para parecer más humano
-            sleep $((RANDOM % 5 + 3))
-          done
+            const mainURL = "https://yoelmod.blogspot.com";
+            console.log("Extrayendo subpáginas desde:", mainURL);
+            await page.goto(mainURL, { waitUntil: 'networkidle2', timeout: 30000 });
+
+            const urls = await page.$$eval('a[href^="https://yoelmod.blogspot.com"]', anchors =>
+              [...new Set(anchors.map(a => a.href).filter(href =>
+                href.startsWith("https://yoelmod.blogspot.com") &&
+                !href.includes("#") &&
+                !href.endsWith(".jpg") &&
+                !href.endsWith(".png") &&
+                !href.endsWith(".pdf")
+              ))]
+            );
+
+            console.log(`Se encontraron ${urls.length} enlaces únicos.`);
+
+            let visitasOk = 0, errores = 0;
+            for (const url of urls) {
+              const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+              await page.setUserAgent(userAgent);
+              await page.setExtraHTTPHeaders({
+                'Referer': 'https://www.google.com/'
+              });
+
+              console.log("Visitando:", url, "con", userAgent);
+              try {
+                await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+                await page.waitForTimeout(Math.floor(Math.random() * 4000) + 3000);
+                visitasOk++;
+              } catch (error) {
+                console.log("Error al visitar", url, error.message);
+                errores++;
+              }
+            }
+
+            console.log(`Visitas exitosas: ${visitasOk}`);
+            console.log(`Errores: ${errores}`);
+            await browser.close();
+          })();
+          EOF
+
+      - name: Ejecutar visitas
+        run: node visit.js

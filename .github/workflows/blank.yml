@@ -8,6 +8,7 @@ on:
 jobs:
   simulate-visits:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,86 +18,21 @@ jobs:
           sudo apt update
           sudo apt install -y curl jq
 
-      - name: Validate Proxies and Visit URLs
+      - name: Visit Blog without Proxy
         run: |
-          PROXIES=(
-            38.154.227.167:8080
-            51.79.50.22:9300
-            179.60.150.153:8080
-            103.155.199.11:3128
-            102.132.57.52:8080
-            102.38.12.230:8080
-            102.64.126.35:8080
-            103.151.177.106:8085
-            157.119.211.133:8080
-            154.236.189.60:1976
-            5.161.144.27:3128
-            80.244.229.102:8080
-            103.125.217.31:34020
-            102.68.132.230:8080
-            102.38.7.160:8080
-            103.105.212.106:53281
-            47.88.11.3:8080
-            185.217.137.242:1337
-            181.129.183.19:53281
-            5.78.65.171:8080
-            38.156.233.11:999
-            103.163.231.105:8080
-            165.227.222.32:3128
-            207.180.240.147:3128
-            45.174.87.18:999
-            51.15.242.202:8888
-            154.53.59.221:8080
-            179.60.150.153:8080
-            91.107.180.23:3128
-            38.54.76.253:999
-            154.236.191.137:1976
-            190.60.35.210:999
-            103.10.155.131:8080
-            103.138.138.52:8080
-            207.180.251.58:3128
-            103.169.186.18:3125
-            64.225.4.17:10008
-            200.105.215.18:33630
-            190.107.234.138:999
-            51.15.242.202:8888
-          )
-
-          is_proxy_alive() {
-            proxy=$1
-            timeout 5 curl -x $proxy -s -o /dev/null https://www.google.com
-            return $?
-          }
-
-          PROXY_FOUND=""
-
-          echo "Iniciando validación de proxies..."
-
-          for proxy in "${PROXIES[@]}"; do
-            echo "Probando proxy $proxy ..."
-            if is_proxy_alive $proxy; then
-              echo "Proxy $proxy está activo."
-              PROXY_FOUND=$proxy
-              break
-            else
-              echo "Proxy $proxy está caído, intentando siguiente..."
-            fi
-          done
-
-          if [ -z "$PROXY_FOUND" ]; then
-            echo "No se encontró ningún proxy activo. Abortando."
-            exit 1
-          fi
-
-          echo "Usando proxy $PROXY_FOUND para visitar URLs."
-
+          # Obtener todos los enlaces del blog principal
           URLS=$(curl -s https://yoelmod.blogspot.com | grep -oP '(?<=href=")[^"]+' | grep '^https://yoelmod.blogspot.com' | sort -u)
           echo "$URLS" > urls.txt
-
+          
+          # Seleccionar 5 URLs aleatorios
           RANDOM_URLS=$(shuf -n 5 urls.txt)
 
           for URL in $RANDOM_URLS; do
-            echo "Visitando $URL con proxy $PROXY_FOUND"
-            curl -x $PROXY_FOUND -A "$(shuf -n 1 -e 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' 'Mozilla/5.0 (Linux; Android 11)' 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')" \
-              -e "https://google.com" -L "$URL" --connect-timeout 10 --max-time 25 || echo "Fallo al visitar $URL"
+            echo "Visitando $URL sin proxy"
+            curl -A "$(shuf -n 1 -e \
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' \
+              'Mozilla/5.0 (Linux; Android 11)' \
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')" \
+              -e "https://www.google.com" -L "$URL" \
+              --connect-timeout 10 --max-time 25 || echo "Fallo al visitar $URL"
           done

@@ -1,120 +1,129 @@
-name: Blog Traffic Simulator with UTM
+name: Simulate Blog Visits
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 * * * *"  # Cada hora
 
 jobs:
   simulate-visits:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 20
       matrix:
-        instance: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
-                   21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,
-                   41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,
-                   61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,
-                   81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,
-                   101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,
-                   121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,
-                   141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,
-                   161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,
-                   181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,
-                   201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216]
-        total_instances: [216]
+        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                   17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+                   31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                   45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
+                   59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
+                   73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,
+                   87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
+                   101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
+                   112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,
+                   123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133,
+                   134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144,
+                   145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155,
+                   156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166,
+                   167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177,
+                   178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188,
+                   189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199,
+                   200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210,
+                   211, 212, 213, 214, 215, 216]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: '18'
 
       - name: Install Puppeteer
         run: npm install puppeteer
 
-      - name: Simulate Visits with UTM
-        env:
-          INSTANCE: ${{ matrix.instance }}
-          TOTAL_INSTANCES: ${{ matrix.total_instances }}
-          INDEX_URL: https://yoelmod.blogspot.com/p/index.html
+      - name: Simulate visit
         run: |
           cat > visit.js <<'EOF'
           const puppeteer = require('puppeteer');
 
-          (async () => {
-            const instance = parseInt(process.env.INSTANCE);
-            const totalInstances = parseInt(process.env.TOTAL_INSTANCES);
-            const indexUrl = process.env.INDEX_URL;
+          const urls = [
+            'https://yoelmod.blogspot.com/',
+            'https://yoelmod.blogspot.com/search?q=',
+            'https://yoelmod.blogspot.com/p/index.html',
+            'https://yoelmod.blogspot.com/2023/12/servicio-social-y-la-extension.html',
+            'https://yoelmod.blogspot.com/2024/01/cuadro-de-mando-integral-modelo.html',
+            'https://yoelmod.blogspot.com/2024/04/como-se-usa-la-estadistica-para.html',
+            'https://yoelmod.blogspot.com/2024/01/resumen-completo-del-libro-la-meta.html'
+          ];
 
-            const browser = await puppeteer.launch({ headless: 'new' });
+          const referers = [
+            'https://google.com',
+            'https://bing.com',
+            'https://duckduckgo.com',
+            'https://yoelmod.blogspot.com/',
+            'https://yoelmod.blogspot.com/p/index.html'
+          ];
+
+          async function simulateVisit(url) {
+            const browser = await puppeteer.launch({
+              headless: 'new',
+              args: ['--no-sandbox']
+            });
+
             const page = await browser.newPage();
-            await page.goto(indexUrl, { waitUntil: 'networkidle2', timeout: 30000 });
 
-            const allUrls = await page.$$eval('a[href*="yoelmod.blogspot.com"]', links =>
-              [...new Set(links.map(link => link.href.trim()))]
+            await page.setUserAgent(
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
             );
 
-            const urls = allUrls.filter((_, i) => (i % totalInstances) === (instance - 1));
-            console.log(`Instancia ${instance}: procesará ${urls.length} URLs.`);
+            await page.setViewport({
+              width: 1280 + Math.floor(Math.random() * 400),
+              height: 720 + Math.floor(Math.random() * 200)
+            });
 
-            const sources = [
-              { source: 'facebook', medium: 'social', campaign: 'fb_campaign' },
-              { source: 'twitter', medium: 'social', campaign: 'tw_campaign' },
-              { source: 'google', medium: 'search', campaign: 'seo_campaign' },
-              { source: 'direct', medium: 'none', campaign: 'direct' }
-            ];
+            await page.setExtraHTTPHeaders({
+              'referer': referers[Math.floor(Math.random() * referers.length)]
+            });
 
-            for (const baseUrl of urls) {
-              try {
-                const utm = sources[Math.floor(Math.random() * sources.length)];
-                const finalUrl = `${baseUrl}?utm_source=${utm.source}&utm_medium=${utm.medium}&utm_campaign=${utm.campaign}`;
+            try {
+              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-                const visitPage = await browser.newPage();
+              const delay = ms => new Promise(res => setTimeout(res, ms));
+              await delay(10000 + Math.random() * 20000);
 
-                await visitPage.setExtraHTTPHeaders({
-                  referer: indexUrl
-                });
-
-                await visitPage.setUserAgent(
-                  ['Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-                   'Mozilla/5.0 (Linux; Android 11)'][Math.floor(Math.random() * 3)]
-                );
-
-                await visitPage.goto(finalUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-                console.log(`Instancia ${instance} visitó: ${finalUrl}`);
-
-                await visitPage.evaluate(async () => {
-                  const delay = ms => new Promise(res => setTimeout(res, ms));
-                  const maxScroll = document.body.scrollHeight;
-
-                  for (let i = 0; i < 3; i++) {
-                    window.scrollTo({ top: Math.floor(Math.random() * maxScroll), behavior: 'smooth' });
-                    await delay(1000 + Math.random() * 1500);
-                  }
-
-                  const elements = Array.from(document.querySelectorAll('a, button, div'));
-                  if (elements.length) {
-                    const el = elements[Math.floor(Math.random() * elements.length)];
-                    try { el.click(); } catch {}
-                    await delay(1000 + Math.random() * 1500);
-                  }
-                });
-
-                await visitPage.waitForTimeout(2000 + Math.random() * 3000);
-                await visitPage.close();
-
-              } catch (err) {
-                console.error(`Instancia ${instance} falló en ${baseUrl}: ${err.message}`);
+              // Scroll de forma progresiva
+              for (let i = 0; i < 10 + Math.floor(Math.random() * 20); i++) {
+                await page.evaluate(y => window.scrollBy(0, y), 100 + Math.random() * 300);
+                await delay(500 + Math.random() * 1000);
               }
+
+              // Click aleatorio en un enlace interno
+              const links = await page.$$eval('a[href^="https://yoelmod.blogspot.com"]', anchors =>
+                anchors.map(a => a.href)
+              );
+
+              const clickCount = Math.floor(Math.random() * 3) + 1;
+              for (let i = 0; i < clickCount && links.length > 0; i++) {
+                const link = links[Math.floor(Math.random() * links.length)];
+                await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60000 });
+                await delay(5000 + Math.random() * 10000);
+                await page.goBack({ waitUntil: 'domcontentloaded' });
+              }
+
+              await delay(5000);
+            } catch (err) {
+              console.error('Error visiting:', url, err.message);
             }
 
             await browser.close();
+          }
+
+          const instance = parseInt(process.env.INSTANCE_ID || '0');
+          const filteredUrls = urls.filter((_, index) => index % 216 === (instance - 1));
+          const toVisit = filteredUrls.length > 0 ? filteredUrls : [urls[instance % urls.length]];
+
+          (async () => {
+            for (const url of toVisit) {
+              await simulateVisit(url);
+            }
           })();
           EOF
 
           node visit.js
+        env:
+          INSTANCE_ID: ${{ matrix.instance }}

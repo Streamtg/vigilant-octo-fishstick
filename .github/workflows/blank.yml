@@ -1,129 +1,137 @@
-name: Simulate Blog Visits
+name: Simular visitas con referers, clics reales y user-agents variados
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *" # Ejecuta cada 6 horas
 
 jobs:
-  simulate-visits:
+  visit:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-                   17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-                   31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
-                   45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
-                   59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
-                   73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,
-                   87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
-                   101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
-                   112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,
-                   123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133,
-                   134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144,
-                   145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155,
-                   156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166,
-                   167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177,
-                   178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188,
-                   189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199,
-                   200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210,
-                   211, 212, 213, 214, 215, 216]
+        instance: [1-210] # 210 instancias paralelas
 
     steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
+    - name: Instalar Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
 
-      - name: Install Puppeteer
-        run: npm install puppeteer
+    - name: Instalar Puppeteer
+      run: npm install puppeteer@20
 
-      - name: Simulate visit
-        run: |
-          cat > visit.js <<'EOF'
-          const puppeteer = require('puppeteer');
+    - name: Ejecutar script de visita
+      env:
+        INSTANCE_ID: ${{ matrix.instance }}
+      run: |
+        cat > visit.js << 'EOF'
+        const puppeteer = require('puppeteer');
 
-          const urls = [
-            'https://yoelmod.blogspot.com/',
-            'https://yoelmod.blogspot.com/search?q=',
-            'https://yoelmod.blogspot.com/p/index.html',
-            'https://yoelmod.blogspot.com/2023/12/servicio-social-y-la-extension.html',
-            'https://yoelmod.blogspot.com/2024/01/cuadro-de-mando-integral-modelo.html',
-            'https://yoelmod.blogspot.com/2024/04/como-se-usa-la-estadistica-para.html',
-            'https://yoelmod.blogspot.com/2024/01/resumen-completo-del-libro-la-meta.html'
-          ];
+        // Listado de URLs objetivo
+        const targetUrls = [
+          'https://yoelmod.blogspot.com/',
+          'https://yoelmod.blogspot.com/search?q=',
+          'https://yoelmod.blogspot.com/p/index.html',
+          'https://yoelmod.blogspot.com/2023/12/servicio-social-y-la-extension.html',
+          'https://yoelmod.blogspot.com/2024/01/cuadro-de-mando-integral-modelo.html',
+          'https://yoelmod.blogspot.com/2024/04/como-se-usa-la-estadistica-para.html',
+          'https://yoelmod.blogspot.com/2024/01/resumen-completo-del-libro-la-meta.html'
+        ];
 
-          const referers = [
-            'https://google.com',
-            'https://bing.com',
-            'https://duckduckgo.com',
-            'https://yoelmod.blogspot.com/',
-            'https://yoelmod.blogspot.com/p/index.html'
-          ];
+        // Páginas referer con selector para enlaces a tu blog
+        const refererPages = [
+          { url: 'https://www.facebook.com/', selector: 'a[href*="yoelmod.blogspot.com"]' },
+          { url: 'https://www.google.com/', selector: 'a[href*="yoelmod.blogspot.com"]' },
+          { url: 'https://www.bing.com/', selector: 'a[href*="yoelmod.blogspot.com"]' },
+          { url: 'https://duckduckgo.com/', selector: 'a[href*="yoelmod.blogspot.com"]' },
+          { url: 'https://yoelmod.blogspot.com/', selector: 'a[href*="yoelmod.blogspot.com"]' }
+        ];
 
-          async function simulateVisit(url) {
-            const browser = await puppeteer.launch({
-              headless: 'new',
-              args: ['--no-sandbox']
-            });
+        // User agents variados y sus tamaños típicos de pantalla
+        const devices = [
+          { name: 'Desktop Chrome', ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36', viewport: {width: 1366, height: 768} },
+          { name: 'iPhone 14', ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1', viewport: {width: 390, height: 844} },
+          { name: 'Samsung Galaxy S21', ua: 'Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110 Mobile Safari/537.36', viewport: {width: 360, height: 800} },
+          { name: 'iPad', ua: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1', viewport: {width: 820, height: 1180} },
+          { name: 'Firefox Desktop', ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0', viewport: {width: 1440, height: 900} }
+        ];
 
-            const page = await browser.newPage();
+        async function simulateVisit(targetUrl) {
+          // Elegir dispositivo aleatorio para user-agent y viewport
+          const device = devices[Math.floor(Math.random() * devices.length)];
 
-            await page.setUserAgent(
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
-            );
+          const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+          const page = await browser.newPage();
 
-            await page.setViewport({
-              width: 1280 + Math.floor(Math.random() * 400),
-              height: 720 + Math.floor(Math.random() * 200)
-            });
+          await page.setUserAgent(device.ua);
+          await page.setViewport(device.viewport);
 
-            await page.setExtraHTTPHeaders({
-              'referer': referers[Math.floor(Math.random() * referers.length)]
-            });
+          const referer = refererPages[Math.floor(Math.random() * refererPages.length)];
 
-            try {
-              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+          try {
+            await page.goto(referer.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await autoScroll(page);
 
-              const delay = ms => new Promise(res => setTimeout(res, ms));
-              await delay(10000 + Math.random() * 20000);
+            const links = await page.$$eval(referer.selector, els => els.map(el => el.href).filter(href => href));
 
-              // Scroll de forma progresiva
-              for (let i = 0; i < 10 + Math.floor(Math.random() * 20); i++) {
-                await page.evaluate(y => window.scrollBy(0, y), 100 + Math.random() * 300);
-                await delay(500 + Math.random() * 1000);
-              }
-
-              // Click aleatorio en un enlace interno
-              const links = await page.$$eval('a[href^="https://yoelmod.blogspot.com"]', anchors =>
-                anchors.map(a => a.href)
-              );
-
-              const clickCount = Math.floor(Math.random() * 3) + 1;
-              for (let i = 0; i < clickCount && links.length > 0; i++) {
-                const link = links[Math.floor(Math.random() * links.length)];
-                await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60000 });
-                await delay(5000 + Math.random() * 10000);
-                await page.goBack({ waitUntil: 'domcontentloaded' });
-              }
-
-              await delay(5000);
-            } catch (err) {
-              console.error('Error visiting:', url, err.message);
+            if (links.length === 0) {
+              console.log(`No se encontraron enlaces al blog en el referer: ${referer.url}`);
+              await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            } else {
+              const chosenLink = links[Math.floor(Math.random() * links.length)];
+              await Promise.all([
+                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 }),
+                page.click(`a[href="${chosenLink}"]`)
+              ]);
             }
 
+            await autoScroll(page);
+
+            // Hacer clicks internos en enlaces del blog
+            const internalLinks = await page.$$eval('a[href^="https://yoelmod.blogspot.com"]', anchors => anchors.map(a => a.href));
+            const clickCount = 1 + Math.floor(Math.random() * 5);
+            for (let i = 0; i < clickCount && internalLinks.length > 0; i++) {
+              const link = internalLinks[Math.floor(Math.random() * internalLinks.length)];
+              await Promise.all([
+                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 }),
+                page.goto(link)
+              ]);
+              await autoScroll(page);
+            }
+
+            await page.waitForTimeout(5000 + Math.random() * 5000);
+
+            console.log(`Visita completada usando dispositivo: ${device.name}`);
+          } catch (e) {
+            console.error('Error en la visita:', e);
+          } finally {
             await browser.close();
           }
+        }
 
-          const instance = parseInt(process.env.INSTANCE_ID || '0');
-          const filteredUrls = urls.filter((_, index) => index % 216 === (instance - 1));
-          const toVisit = filteredUrls.length > 0 ? filteredUrls : [urls[instance % urls.length]];
+        async function autoScroll(page) {
+          await page.evaluate(async () => {
+            await new Promise(resolve => {
+              let totalHeight = 0;
+              const distance = 100;
+              const timer = setInterval(() => {
+                window.scrollBy(0, distance);
+                totalHeight += distance;
+                if (totalHeight >= document.body.scrollHeight) {
+                  clearInterval(timer);
+                  resolve();
+                }
+              }, 200 + Math.random() * 300);
+            });
+          });
+        }
 
-          (async () => {
-            for (const url of toVisit) {
-              await simulateVisit(url);
-            }
-          })();
-          EOF
+        (async () => {
+          const instance = parseInt(process.env.INSTANCE_ID || '1');
+          const target = targetUrls[(instance - 1) % targetUrls.length];
+          await simulateVisit(target);
+        })();
+        EOF
 
-          node visit.js
-        env:
-          INSTANCE_ID: ${{ matrix.instance }}
+        node visit.js

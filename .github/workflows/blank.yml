@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Puppeteer and axios
+      - name: Install dependencies
         run: npm install puppeteer axios
 
       - name: Simulate visit
@@ -42,103 +42,119 @@ jobs:
           const puppeteer = require('puppeteer');
           const axios = require('axios');
 
+          const blogBase = 'https://yoelmod.blogspot.com/';
           const referers = [
             'https://google.com',
+            'https://bing.com',
+            'https://duckduckgo.com',
             'https://facebook.com',
             'https://twitter.com',
-            'https://t.co',
-            'https://yoelmod.blogspot.com/',
-            'https://bing.com'
+            'https://yoelmod.blogspot.com/'
           ];
 
           const userAgents = [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
-            'Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 Chrome/95.0.4638.74 Mobile Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/119.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (iPad; CPU OS 14_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
+            'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110 Mobile Safari/537.36',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15',
+            'Mozilla/5.0 (Linux; Android 9; Mi A2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100 Mobile Safari/537.36'
           ];
 
-          async function getIndexLinks() {
+          async function extractLinks() {
             try {
-              const res = await axios.get('https://yoelmod.blogspot.com/');
-              const matches = res.data.match(/href="(https:\/\/yoelmod\.blogspot\.com\/[^"]+)"/g);
-              const links = matches ? [...new Set(matches.map(m => m.replace(/href="|"/g, '')))] : [];
-              return links;
-            } catch (err) {
-              console.error('Error fetching index:', err.message);
-              return [];
+              const response = await axios.get(blogBase);
+              const html = response.data;
+
+              const regex = /href="(https:\/\/yoelmod\.blogspot\.com\/[^\s"#]+)"/g;
+              const links = new Set();
+              let match;
+              while ((match = regex.exec(html)) !== null) {
+                if (match[1].startsWith(blogBase)) {
+                  links.add(match[1]);
+                }
+              }
+              return Array.from(links);
+            } catch (error) {
+              console.error('Error extrayendo enlaces:', error.message);
+              return [blogBase];
             }
           }
 
-          async function simulateVisit(instance) {
-            const urls = await getIndexLinks();
-            if (urls.length === 0) {
-              console.log('No se encontraron enlaces.');
-              return;
-            }
-
-            const browser = await puppeteer.launch({
-              headless: 'new',
-              args: ['--no-sandbox']
-            });
-
+          async function simulateVisit(url) {
+            const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
             const page = await browser.newPage();
 
+            // Set random user agent
             const ua = userAgents[Math.floor(Math.random() * userAgents.length)];
             await page.setUserAgent(ua);
 
+            // Set random viewport
             await page.setViewport({
-              width: 360 + Math.floor(Math.random() * 900),
-              height: 640 + Math.floor(Math.random() * 400)
+              width: 800 + Math.floor(Math.random() * 800),
+              height: 600 + Math.floor(Math.random() * 600),
             });
 
+            // Set random referer header
             const referer = referers[Math.floor(Math.random() * referers.length)];
             await page.setExtraHTTPHeaders({ referer });
 
-            const url = urls[Math.floor(instance % urls.length)];
-            console.log(`Visitando: ${url}`);
-
             try {
+              console.log(`Visitando: ${url} con User-Agent: ${ua} y Referer: ${referer}`);
               await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-              const delay = ms => new Promise(res => setTimeout(res, ms));
+              // Espera entre 10 y 30 segundos
+              const delay = ms => new Promise(r => setTimeout(r, ms));
               await delay(10000 + Math.random() * 20000);
 
-              // Scroll
-              for (let i = 0; i < 10 + Math.floor(Math.random() * 10); i++) {
-                await page.evaluate(y => window.scrollBy(0, y), 200 + Math.random() * 400);
-                await delay(300 + Math.random() * 700);
+              // Scroll progresivo
+              const scrollSteps = 10 + Math.floor(Math.random() * 20);
+              for (let i = 0; i < scrollSteps; i++) {
+                await page.evaluate(y => window.scrollBy(0, y), 100 + Math.random() * 300);
+                await delay(500 + Math.random() * 1000);
               }
 
-              // Clicks
-              const links = await page.$$eval('a[href^="https://yoelmod.blogspot.com"]', els =>
-                els.map(e => e.href)
-              );
+              // Obtener enlaces internos para click
+              const links = await page.$$eval('a[href^="' + blogBase + '"]', as => as.map(a => a.href));
+              if (links.length === 0) {
+                console.log('No se encontraron enlaces para click.');
+              } else {
+                const minClicks = 8;
+                const maxClicks = 11;
+                const clickCount = minClicks + Math.floor(Math.random() * (maxClicks - minClicks + 1));
+                console.log(`Realizando ${clickCount} clicks aleatorios.`);
 
-              const clickCount = 8 + Math.floor(Math.random() * 4); // Entre 8 y 11
-              for (let i = 0; i < clickCount && links.length > 0; i++) {
-                const target = links[Math.floor(Math.random() * links.length)];
-                try {
-                  await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 60000 });
-                  await delay(3000 + Math.random() * 5000);
-                  await page.goBack({ waitUntil: 'domcontentloaded' });
-                  await delay(2000);
-                } catch {
-                  console.log("Click fallido, continuando...");
+                for (let i = 0; i < clickCount; i++) {
+                  const link = links[Math.floor(Math.random() * links.length)];
+                  try {
+                    await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60000 });
+                    await delay(5000 + Math.random() * 10000);
+                    await page.goBack({ waitUntil: 'domcontentloaded' });
+                  } catch (e) {
+                    console.log('Click fallido, continuando...');
+                  }
                 }
               }
 
               await delay(5000);
+              console.log('Visita completada exitosamente.');
             } catch (err) {
-              console.error('Error durante la visita:', err.message);
+              console.error('Error en la visita:', err.message);
             }
-
             await browser.close();
           }
 
-          const instance = parseInt(process.env.INSTANCE_ID || '0');
-          simulateVisit(instance);
+          (async () => {
+            const instance = parseInt(process.env.INSTANCE_ID || '1');
+            const allLinks = await extractLinks();
+
+            // Para repartir carga entre 216 instancias
+            const urlsToVisit = allLinks.filter((_, idx) => (idx % 216) === (instance - 1));
+            const targets = urlsToVisit.length > 0 ? urlsToVisit : [allLinks[instance % allLinks.length]];
+
+            for (const url of targets) {
+              await simulateVisit(url);
+            }
+          })();
           EOF
 
           node visit.js

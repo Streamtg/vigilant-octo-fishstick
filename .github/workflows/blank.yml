@@ -1,4 +1,4 @@
-name: Simular visitas al blog
+name: Simular visitas realistas al blog
 
 on:
   workflow_dispatch:
@@ -8,23 +8,28 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-                   17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-                   31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
-                   45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
-                   59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
-                   73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,
-                   87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
-                   101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112,
-                   113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
-                   125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136,
-                   137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
-                   149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160,
-                   161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172,
-                   173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184,
-                   185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196,
-                   197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208,
-                   209, 210, 211, 212, 213, 214, 215, 216]
+        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                   11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+                   21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+                   31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+                   41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+                   51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+                   61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                   71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
+                   81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
+                   91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
+                   101,102,103,104,105,106,107,108,109,110,
+                   111,112,113,114,115,116,117,118,119,120,
+                   121,122,123,124,125,126,127,128,129,130,
+                   131,132,133,134,135,136,137,138,139,140,
+                   141,142,143,144,145,146,147,148,149,150,
+                   151,152,153,154,155,156,157,158,159,160,
+                   161,162,163,164,165,166,167,168,169,170,
+                   171,172,173,174,175,176,177,178,179,180,
+                   181,182,183,184,185,186,187,188,189,190,
+                   191,192,193,194,195,196,197,198,199,200,
+                   201,202,203,204,205,206,207,208,209,210,
+                   211,212,213,214,215,216]
     steps:
       - name: Instalar dependencias
         run: |
@@ -41,6 +46,31 @@ jobs:
           const axios = require('axios');
           const xml2js = require('xml2js');
 
+          const referers = [
+            'https://facebook.com',
+            'https://twitter.com',
+            'https://instagram.com',
+            'https://www.reddit.com',
+            'https://t.co',
+            'https://www.linkedin.com',
+            'https://pinterest.com'
+          ];
+
+          const userAgents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+            'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+          ];
+
+          const devices = [
+            { width: 1920, height: 1080 },
+            { width: 768, height: 1024 },
+            { width: 414, height: 896 },
+            { width: 1366, height: 768 }
+          ];
+
           function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
           }
@@ -51,9 +81,23 @@ jobs:
               const parsed = await xml2js.parseStringPromise(data);
               const urls = parsed.urlset.url.map(u => u.loc[0]);
               return urls.filter(url => url.includes('yoelmod.blogspot.com'));
-            } catch (e) {
+            } catch {
               return [];
             }
+          }
+
+          async function randomScroll(page) {
+            const steps = Math.floor(Math.random() * 10) + 5;
+            for (let i = 0; i < steps; i++) {
+              await page.evaluate(() => {
+                window.scrollBy(0, window.innerHeight / 2);
+              });
+              await sleep(500 + Math.random() * 800);
+            }
+            await page.evaluate(() => {
+              window.scrollTo(0, 0);
+            });
+            await sleep(1000);
           }
 
           async function randomClicks(page, count = 3) {
@@ -72,17 +116,26 @@ jobs:
             });
 
             const page = await browser.newPage();
-            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36');
+
+            const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+            const referer = referers[Math.floor(Math.random() * referers.length)];
+            const device = devices[Math.floor(Math.random() * devices.length)];
+
+            await page.setUserAgent(userAgent);
+            await page.setExtraHTTPHeaders({ referer });
+            await page.setViewport(device);
 
             await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'networkidle2', timeout: 60000 });
-            await randomClicks(page, 2);
+            await randomScroll(page);
+            await randomClicks(page, 3);
 
             const links = await getSitemapLinks();
             if (links.length > 0) {
               const selected = links[Math.floor(Math.random() * links.length)];
               await page.goto(selected, { waitUntil: 'networkidle2', timeout: 60000 });
-              await randomClicks(page, 2);
-              await sleep(3000 + Math.random() * 5000);
+              await randomScroll(page);
+              await randomClicks(page, 3);
+              await sleep(5000 + Math.random() * 5000);
             }
 
             await browser.close();

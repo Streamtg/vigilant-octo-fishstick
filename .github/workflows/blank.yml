@@ -1,4 +1,4 @@
-name: Simular visitas realistas al blog
+name: Simular visitas a video Dailymotion
 
 on:
   workflow_dispatch:
@@ -38,117 +38,65 @@ jobs:
           sudo apt-get install -y wget curl xvfb
           curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
           sudo apt-get install -y nodejs
-          npm install puppeteer axios xml2js
+          npm install puppeteer
 
       - name: Crear script de visita
         run: |
           cat > visit.js <<'EOF'
           const puppeteer = require('puppeteer');
-          const axios = require('axios');
-          const xml2js = require('xml2js');
 
+          const videoURL = 'https://dai.ly/x8vyyeq';
           const referers = [
-            { name: 'Facebook', url: 'https://facebook.com' },
-            { name: 'Twitter', url: 'https://twitter.com' },
-            { name: 'Instagram', url: 'https://instagram.com' },
-            { name: 'Reddit', url: 'https://www.reddit.com' },
-            { name: 'LinkedIn', url: 'https://www.linkedin.com' },
-            { name: 'Pinterest', url: 'https://pinterest.com' }
+            'https://facebook.com',
+            'https://twitter.com',
+            'https://instagram.com',
+            'https://reddit.com',
+            'https://linkedin.com',
+            'https://pinterest.com'
           ];
-
           const userAgents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
             'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-            'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
           ];
-
           const devices = [
             { width: 1920, height: 1080 },
+            { width: 1366, height: 768 },
             { width: 768, height: 1024 },
-            { width: 414, height: 896 },
-            { width: 1366, height: 768 }
+            { width: 414, height: 896 }
           ];
 
           function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
           }
 
-          async function getSitemapLinks() {
-            try {
-              const { data } = await axios.get('https://yoelmod.blogspot.com/sitemap.xml');
-              const parsed = await xml2js.parseStringPromise(data);
-              const urls = parsed.urlset.url.map(u => u.loc[0]);
-              return urls.filter(url => url.includes('yoelmod.blogspot.com'));
-            } catch {
-              return [];
-            }
-          }
-
-          async function randomScroll(page) {
-            const steps = Math.floor(Math.random() * 10) + 5;
-            for (let i = 0; i < steps; i++) {
-              await page.evaluate(() => {
-                window.scrollBy(0, window.innerHeight / 2);
-              });
-              await sleep(500 + Math.random() * 800);
-            }
-            await page.evaluate(() => {
-              window.scrollTo(0, 0);
-            });
-            await sleep(1000);
-          }
-
-          async function randomClicks(page, count = 3) {
-            for (let i = 0; i < count; i++) {
-              const x = Math.floor(Math.random() * 800) + 100;
-              const y = Math.floor(Math.random() * 800) + 100;
-              await page.mouse.click(x, y);
-              await sleep(1000 + Math.random() * 2000);
-            }
-          }
-
-          (async () => {
-            const browser = await puppeteer.launch({
-              headless: true,
-              args: ['--no-sandbox', '--disable-setuid-sandbox']
-            });
-
+          async function simulateVisit() {
+            const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
             const page = await browser.newPage();
 
             const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+            const viewport = devices[Math.floor(Math.random() * devices.length)];
             const referer = referers[Math.floor(Math.random() * referers.length)];
-            const device = devices[Math.floor(Math.random() * devices.length)];
 
             await page.setUserAgent(userAgent);
-            await page.setViewport(device);
+            await page.setViewport(viewport);
+            await page.setExtraHTTPHeaders({ referer });
 
-            await page.goto(referer.url, { waitUntil: 'networkidle2', timeout: 60000 });
-            await page.evaluate(() => {
-              const link = document.createElement('a');
-              link.href = 'https://yoelmod.blogspot.com';
-              link.textContent = 'Visitar Blog';
-              document.body.appendChild(link);
-              link.click();
-            });
-            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
+            await page.goto(videoURL, { waitUntil: 'networkidle2', timeout: 60000 });
 
-            await randomScroll(page);
-            await randomClicks(page, 5);
-
-            const links = await getSitemapLinks();
-            if (links.length > 0) {
-              const selected = links[Math.floor(Math.random() * links.length)];
-              await page.goto(selected, { waitUntil: 'networkidle2', timeout: 60000 });
-              await randomScroll(page);
-              await randomClicks(page, 5);
-              await sleep(5000 + Math.random() * 5000);
+            // Simular scroll
+            for (let i = 0; i < 6; i++) {
+              await page.evaluate(() => window.scrollBy(0, window.innerHeight / 2));
+              await sleep(800 + Math.random() * 1000);
             }
 
+            await sleep(15000 + Math.random() * 10000);
             await browser.close();
-          })();
+          }
+
+          simulateVisit();
           EOF
 
-      - name: Ejecutar script de visita
+      - name: Ejecutar visita
         run: node visit.js

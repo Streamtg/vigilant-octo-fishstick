@@ -1,106 +1,116 @@
-name: Simular Visitas al Blog
+name: Visit Blog
 
 on:
-  schedule:
-    - cron: '0 * * * *'  # Ejecuta cada hora
   workflow_dispatch:
 
 jobs:
   visit:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
       matrix:
-        job: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-              13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-              25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
-              37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
-              49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
-              61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
-              73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,
-              85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
-              97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108,
-              109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120,
-              121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132,
-              133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144,
-              145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156,
-              157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
-              169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
-              181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192,
-              193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204,
-              205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216]
+        job_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                  11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+                  21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+                  31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+                  41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+                  51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+                  61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+                  71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
+                  81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
+                  91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
+                  101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
+                  111, 112, 113, 114, 115, 116, 117, 118, 119, 120,
+                  121, 122, 123, 124, 125, 126, 127, 128, 129, 130,
+                  131, 132, 133, 134, 135, 136, 137, 138, 139, 140,
+                  141, 142, 143, 144, 145, 146, 147, 148, 149, 150,
+                  151, 152, 153, 154, 155, 156, 157, 158, 159, 160,
+                  161, 162, 163, 164, 165, 166, 167, 168, 169, 170,
+                  171, 172, 173, 174, 175, 176, 177, 178, 179, 180,
+                  181, 182, 183, 184, 185, 186, 187, 188, 189, 190,
+                  191, 192, 193, 194, 195, 196, 197, 198, 199, 200,
+                  201, 202, 203, 204, 205, 206, 207, 208, 209, 210,
+                  211, 212, 213, 214, 215, 216]
+
     steps:
-      - name: Instalar dependencias
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget curl unzip
-          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-          sudo apt-get install -y nodejs
-          npm install puppeteer
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
-      - name: Crear script de visita
-        run: |
-          cat > visit.js <<'EOF'
-          const puppeteer = require('puppeteer');
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
 
-          const referrers = [
-            'https://www.facebook.com/',
-            'https://twitter.com/',
-            'https://www.instagram.com/',
-            'https://www.linkedin.com/',
-            'https://t.co/',
-            'https://l.facebook.com/',
-            'https://www.google.com/',
-            'https://www.youtube.com/',
-            'https://www.reddit.com/',
-          ];
+    - name: Install Puppeteer
+      run: |
+        npm install puppeteer axios
 
-          const userAgents = [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (iPhone; CPU iPhone OS 15_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1',
-            'Mozilla/5.0 (Linux; Android 11; SM-A515F) AppleWebKit/537.36 Chrome/90.0.4430.91 Mobile Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_2_1) AppleWebKit/605.1.15 Safari/605.1.15',
-            'Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 Chrome/113.0.0.0 Safari/537.36'
-          ];
+    - name: Create visit script
+      run: |
+        cat > visit.js << 'EOF'
+        const puppeteer = require('puppeteer');
+        const axios = require('axios');
 
-          const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+        const userAgents = [
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)...",
+          "Mozilla/5.0 (Linux; Android 10; SM-G973F)...",
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)..."
+        ];
 
-          async function simulateVisit() {
-            const browser = await puppeteer.launch({
-              headless: true,
-              args: ['--no-sandbox', '--disable-setuid-sandbox']
-            });
+        const referers = [
+          "https://www.facebook.com/",
+          "https://twitter.com/",
+          "https://www.instagram.com/",
+          "https://www.reddit.com/",
+          "https://www.linkedin.com/",
+          "https://t.co/",
+          "https://wa.me/"
+        ];
 
-            const page = await browser.newPage();
-            const referer = referrers[Math.floor(Math.random() * referrers.length)];
-            const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
-
-            await page.setExtraHTTPHeaders({ referer });
-            await page.setUserAgent(userAgent);
-
-            try {
-              await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'networkidle2', timeout: 60000 });
-
-              await delay(1000 + Math.random() * 2000);
-
-              // Simular scrolls para mejorar el engagement
-              for (let i = 0; i < 10; i++) {
-                await page.evaluate(() => {
-                  window.scrollBy(0, window.innerHeight / 2);
-                });
-                await delay(1000 + Math.random() * 1000);
-              }
-
-              await delay(5000 + Math.random() * 5000); // Tiempo total en la página entre 5 y 10 segundos
-
-            } catch (error) {
-              console.error('Error:', error);
-            } finally {
-              await browser.close();
-            }
+        async function getUrls() {
+          try {
+            const res = await axios.get('https://yoelmod.blogspot.com/sitemap.xml');
+            const matches = [...res.data.matchAll(/<loc>(.*?)<\/loc>/g)];
+            return matches.map(m => m[1]);
+          } catch {
+            return ['https://yoelmod.blogspot.com/'];
           }
+        }
 
-          simulateVisit();
-          EOF
+        async function visitPage(url) {
+          const browser = await puppeteer.launch({ headless: true });
+          const page = await browser.newPage();
 
-      - name: Ejecutar script
-        run: node visit.js
+          const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+          await page.setUserAgent(userAgent);
+
+          await page.setExtraHTTPHeaders({
+            'referer': referers[Math.floor(Math.random() * referers.length)],
+          });
+
+          await page.goto(url, { waitUntil: 'networkidle2' });
+
+          await page.waitForTimeout(2000 + Math.random() * 2000);
+
+          await page.evaluate(async () => {
+            const totalScrolls = 10 + Math.floor(Math.random() * 10);
+            for (let i = 0; i < totalScrolls; i++) {
+              window.scrollBy(0, window.innerHeight / 1.5);
+              await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+            }
+          });
+
+          await page.waitForTimeout(30000 + Math.random() * 30000);
+
+          await browser.close();
+        }
+
+        (async () => {
+          const urls = await getUrls();
+          const target = urls[Math.floor(Math.random() * urls.length)];
+          await visitPage(target);
+        })();
+        EOF
+
+    - name: Execute visit
+      run: node visit.js

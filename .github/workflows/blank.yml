@@ -1,4 +1,4 @@
-name: Simular Visitas Blog
+name: Simular Visitas Video Dailymotion
 
 on:
   workflow_dispatch:
@@ -51,7 +51,7 @@ jobs:
           const StealthPlugin = require('puppeteer-extra-plugin-stealth');
           puppeteer.use(StealthPlugin());
 
-          const targetUrl = 'https://yoelmod.blogspot.com';
+          const targetUrl = 'https://dai.ly/x8vyyeq';
 
           const userAgents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
@@ -105,8 +105,8 @@ jobs:
 
             await randomScroll(page);
 
-            const stayTime = 20000 + Math.random() * 20000; // 20-40s
-            await sleep(stayTime);
+            // Mantener la visita por 15 segundos exactos
+            await sleep(15000);
 
             await browser.close();
           })().catch(e => {

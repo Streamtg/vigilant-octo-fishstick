@@ -1,4 +1,4 @@
-name: Dailymotion Visits
+name: Simular Visitas Blog
 
 on:
   workflow_dispatch:
@@ -33,88 +33,84 @@ jobs:
                    211,212,213,214,215,216]
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: '20'
 
-      - name: Install dependencies
+      - name: Install puppeteer and plugins
+        run: npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+
+      - name: Run visit script inline
         run: |
-          npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+          node -e "
+          const puppeteer = require('puppeteer-extra');
+          const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+          puppeteer.use(StealthPlugin());
 
-      - name: Create visit.js
-        run: |
-          echo "const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
+          const targetUrl = 'https://yoelmod.blogspot.com';
 
-const userAgents = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/14.0.3 Safari/605.1.15',
-  'Mozilla/5.0 (Linux; Android 10; SM-G970F) AppleWebKit/537.36 Chrome/91.0.4472.101 Mobile Safari/537.36'
-];
+          const userAgents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
+            'Mozilla/5.0 (Linux; Android 13; SM-G990U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Mobile Safari/537.36'
+          ];
 
-const referers = [
-  'https://twitter.com/',
-  'https://facebook.com/',
-  'https://www.instagram.com/',
-  'https://www.reddit.com/',
-  'https://www.linkedin.com/'
-];
+          const referrers = [
+            'https://www.facebook.com/',
+            'https://www.twitter.com/',
+            'https://www.instagram.com/',
+            'https://www.linkedin.com/',
+            'https://www.reddit.com/',
+            'https://www.tiktok.com/'
+          ];
 
-(async () => {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+          function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+          }
 
-  const page = await browser.newPage();
+          async function randomScroll(page) {
+            await page.evaluate(async () => {
+              const sleep = ms => new Promise(res => setTimeout(res, ms));
+              const totalHeight = document.body.scrollHeight;
+              let viewportHeight = window.innerHeight;
+              let scrollPosition = 0;
+              while(scrollPosition < totalHeight) {
+                window.scrollBy(0, viewportHeight / 2);
+                scrollPosition += viewportHeight / 2;
+                await sleep(500 + Math.random() * 1500);
+              }
+              while(scrollPosition > 0) {
+                window.scrollBy(0, -viewportHeight / 3);
+                scrollPosition -= viewportHeight / 3;
+                await sleep(300 + Math.random() * 700);
+              }
+            });
+          }
 
-  const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
-  const referer = referers[Math.floor(Math.random() * referers.length)];
+          (async () => {
+            const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+            const page = await browser.newPage();
 
-  await page.setUserAgent(userAgent);
-  await page.setExtraHTTPHeaders({ referer });
+            const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+            await page.setUserAgent(userAgent);
 
-  try {
-    await page.goto('https://dai.ly/x8vyyeq', { waitUntil: 'domcontentloaded' });
+            const referer = referrers[Math.floor(Math.random() * referrers.length)];
+            await page.setExtraHTTPHeaders({ Referer: referer });
 
-    // Scroll para simular actividad
-    for (let i = 0; i < 5; i++) {
-      await page.evaluate(() => window.scrollBy(0, window.innerHeight / 2));
-      await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
-    }
+            await page.goto(targetUrl, { waitUntil: 'networkidle2' });
 
-    // Detectar y hacer clic en el reproductor
-    try {
-      const videoFrame = await page.$('iframe[src*="dailymotion.com"]');
-      if (videoFrame) {
-        const frame = await videoFrame.contentFrame();
-        const playButton = await frame.$('button[aria-label="Play"]');
-        if (playButton) await playButton.click();
-      }
-    } catch (e) {
-      console.log('No se detectó el botón de reproducción');
-    }
+            await randomScroll(page);
 
-    // Simular movimiento del mouse durante la reproducción
-    for (let i = 0; i < 5; i++) {
-      await page.mouse.move(100 + Math.random() * 200, 200 + Math.random() * 100);
-      await new Promise(r => setTimeout(r, 4000 + Math.random() * 3000));
-    }
+            const stayTime = 20000 + Math.random() * 20000; // 20-40s
+            await sleep(stayTime);
 
-    // Esperar entre 40 y 70 segundos
-    const waitTime = 40000 + Math.random() * 30000;
-    await new Promise(r => setTimeout(r, waitTime));
-  } catch (err) {
-    console.error('Error en la visita:', err);
-  } finally {
-    await browser.close();
-  }
-})();" > visit.js
-
-      - name: Ejecutar visita
-        run: node visit.js
+            await browser.close();
+          })().catch(e => {
+            console.error(e);
+            process.exit(1);
+          });
+          "

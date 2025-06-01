@@ -43,8 +43,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Puppeteer dependencies
-        run: npm install puppeteer-extra puppeteer-extra-plugin-stealth
+      - name: Install Puppeteer and plugins
+        run: |
+          npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
       - name: Generate visit.js
         run: |
@@ -84,14 +85,14 @@ jobs:
             const url = "https://dai.ly/x8vyyeq";
             await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
-            // Simular movimiento del mouse y scroll suave
+            // Simular scroll y movimiento del mouse
             await page.mouse.move(100 + Math.random() * 300, 100 + Math.random() * 300);
             for (let i = 0; i < 5; i++) {
               await page.evaluate(() => window.scrollBy(0, Math.floor(Math.random() * 200)));
               await page.waitForTimeout(1000 + Math.random() * 1000);
             }
 
-            // Tiempo de visualización entre 30-90 segundos
+            // Ver video entre 30 y 90 segundos
             const watchTime = 30000 + Math.random() * 60000;
             await page.waitForTimeout(watchTime);
 

@@ -1,78 +1,95 @@
-name: Dailymotion Video Visit Bot
+name: Rumble Traffic Generator
 
 on:
   workflow_dispatch:
 
 jobs:
-  simulate-visits:
+  generate-traffic:
+    name: Instance ${{ matrix.job }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        instance: [1,2,3,4,5,6,7,8,9,10,
-                   11,12,13,14,15,16,17,18,19,20,
-                   21,22,23,24,25,26,27,28,29,30,
-                   31,32,33,34,35,36,37,38,39,40,
-                   41,42,43,44,45,46,47,48,49,50,
-                   51,52,53,54,55,56,57,58,59,60,
-                   61,62,63,64,65,66,67,68,69,70,
-                   71,72,73,74,75,76,77,78,79,80,
-                   81,82,83,84,85,86,87,88,89,90,
-                   91,92,93,94,95,96,97,98,99,100,
-                   101,102,103,104,105,106,107,108,109,110,
-                   111,112,113,114,115,116,117,118,119,120,
-                   121,122,123,124,125,126,127,128,129,130,
-                   131,132,133,134,135,136,137,138,139,140,
-                   141,142,143,144,145,146,147,148,149,150,
-                   151,152,153,154,155,156,157,158,159,160,
-                   161,162,163,164,165,166,167,168,169,170,
-                   171,172,173,174,175,176,177,178,179,180,
-                   181,182,183,184,185,186,187,188,189,190,
-                   191,192,193,194,195,196,197,198,199,200,
-                   201,202,203,204,205,206,207,208,209,210,
-                   211,212,213,214,215,216]
+        job: [1,2,3,4,5,6,7,8,9,10,
+              11,12,13,14,15,16,17,18,19,20,
+              21,22,23,24,25,26,27,28,29,30,
+              31,32,33,34,35,36,37,38,39,40,
+              41,42,43,44,45,46,47,48,49,50,
+              51,52,53,54,55,56,57,58,59,60,
+              61,62,63,64,65,66,67,68,69,70,
+              71,72,73,74,75,76,77,78,79,80,
+              81,82,83,84,85,86,87,88,89,90,
+              91,92,93,94,95,96,97,98,99,100,
+              101,102,103,104,105,106,107,108,109,110,
+              111,112,113,114,115,116,117,118,119,120,
+              121,122,123,124,125,126,127,128,129,130,
+              131,132,133,134,135,136,137,138,139,140,
+              141,142,143,144,145,146,147,148,149,150,
+              151,152,153,154,155,156,157,158,159,160,
+              161,162,163,164,165,166,167,168,169,170,
+              171,172,173,174,175,176,177,178,179,180,
+              181,182,183,184,185,186,187,188,189,190,
+              191,192,193,194,195,196,197,198,199,200,
+              201,202,203,204,205,206,207,208,209,210,
+              211,212,213,214,215,216]
+      max-parallel: 20
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
+    - name: Install Puppeteer
+      run: npm install puppeteer
 
-      - name: Install dependencies
-        run: npm install puppeteer
+    - name: Generate 10 video views with Puppeteer + Social Referers
+      run: |
+        node -e "
+        const puppeteer = require('puppeteer');
 
-      - name: Create visit script
-        run: |
-          cat > visit.js <<'EOF'
-          const puppeteer = require('puppeteer');
+        (async () => {
+          const URL = 'https://rumble.com/v41bpuq-school-march-festival.html';
+          const ITERATIONS = 10;
+          const referers = [
+            'https://www.facebook.com',
+            'https://twitter.com',
+            'https://reddit.com',
+            'https://t.co/xyz456',
+            'https://www.instagram.com',
+            'https://www.linkedin.com'
+          ];
 
-          (async () => {
+          for (let i = 0; i < ITERATIONS; i++) {
             const browser = await puppeteer.launch({
               headless: true,
               args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
 
-            const page = await browser.newPage();
-            await page.setUserAgent(
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-            );
-            await page.setExtraHTTPHeaders({
-              referer: 'https://twitter.com/',
-            });
-
             try {
-              await page.goto('https://www.dailymotion.com/video/x8vyyeq', { waitUntil: 'networkidle2' });
-              await page.waitForSelector('button[aria-label="Play"]', { timeout: 10000 });
-              await page.click('button[aria-label="Play"]');
-              await new Promise(resolve => setTimeout(resolve, 15000));
+              const page = await browser.newPage();
+              const ref = referers[Math.floor(Math.random() * referers.length)];
+
+              await page.setExtraHTTPHeaders({ 'referer': ref });
+              await page.setViewport({ width: 1280, height: 720 });
+              await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36');
+
+              // Esperar a que cargue completamente
+              await page.goto(URL, { waitUntil: 'networkidle0', timeout: 60000 });
+
+              const playButtonSelector = '.bigPlayUIInner.ctp';
+              await page.waitForSelector(playButtonSelector, { timeout: 15000 });
+
+              // Hacer clic en el botón de reproducción
+              await page.click(playButtonSelector);
+
+              // Esperar 7 segundos tras el clic
+              await new Promise(resolve => setTimeout(resolve, 7000));
+
             } catch (err) {
-              console.error('Error reproduciendo el video:', err.message);
+              console.error('Error en la iteración', i + 1, ':', err);
+            } finally {
+              await browser.close();
             }
-
-            await browser.close();
-          })();
-          EOF
-
-      - name: Run visit script
-        run: node visit.js
+          }
+        })();
+        "

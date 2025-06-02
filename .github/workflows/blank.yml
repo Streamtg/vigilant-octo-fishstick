@@ -1,9 +1,9 @@
-name: Visit Rumble Video with Real Browser - 216 Iteraciones
+name: Visit Rumble Video - Stealth Mode
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"  # Cada hora
+    - cron: "0 * * * *"
 
 jobs:
   visit-video:
@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -19,50 +19,40 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install puppeteer
-        run: npm install puppeteer
+      - name: Install Puppeteer Stealth
+        run: |
+          npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
       - name: Create visitVideo.js
         run: |
           cat << 'EOF' > visitVideo.js
-          const puppeteer = require('puppeteer');
+          const puppeteer = require('puppeteer-extra');
+          const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+          puppeteer.use(StealthPlugin());
 
           (async () => {
             const url = 'https://rumble.com/v41bpuq-school-march-festival.html';
-
             const browser = await puppeteer.launch({
-              headless: false, // Navegador visible (real)
+              headless: 'new',
               args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
 
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 800 });
 
-            try {
-              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
+            for (let i = 0; i < 216; i++) {
+              try {
+                await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-              for (let i = 0; i < 216; i++) {
-                try {
-                  // Esperar a que el iframe del reproductor esté cargado
-                  const frames = page.frames();
-                  const playerFrame = frames.find(f => f.url().includes("rumble.com/embed"));
-                  
-                  if (playerFrame) {
-                    const playButton = await playerFrame.waitForSelector('button[aria-label="Play"]', { visible: true, timeout: 10000 });
-                    await playButton.click();
-                    console.log(`Reproducción ${i + 1} iniciada.`);
-                  } else {
-                    console.log("No se encontró el iframe del reproductor.");
-                  }
+                // Esperar botón de play
+                const playButton = await page.waitForSelector('button[aria-label="Play"]', { visible: true, timeout: 15000 });
+                await playButton.click();
 
-                  // Esperar 6-8 segundos aleatoriamente
-                  await new Promise(r => setTimeout(r, 6000 + Math.random() * 2000));
-                } catch (error) {
-                  console.error(`Error en la iteración ${i + 1}:`, error.message);
-                }
+                console.log(`▶️ Reproducción ${i + 1} iniciada.`);
+                await new Promise(r => setTimeout(r, 8000 + Math.random() * 3000));
+              } catch (e) {
+                console.error(`❌ Error en iteración ${i + 1}: ${e.message}`);
               }
-            } catch (err) {
-              console.error("Error general:", err.message);
             }
 
             await browser.close();

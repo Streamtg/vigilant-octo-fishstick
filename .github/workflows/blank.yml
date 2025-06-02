@@ -1,15 +1,15 @@
-name: Visit Rumble Video - Stealth Mode
+name: Visit Rumble Video
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 * * * *"
 
 jobs:
-  visit-video:
+  visit-rumble:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-
+    strategy:
+      matrix:
+        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                   11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -17,9 +17,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: 18
 
-      - name: Install Puppeteer Stealth
+      - name: Install Puppeteer & Stealth
         run: |
           npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
@@ -31,33 +31,33 @@ jobs:
           puppeteer.use(StealthPlugin());
 
           (async () => {
-            const url = 'https://rumble.com/v41bpuq-school-march-festival.html';
             const browser = await puppeteer.launch({
-              headless: 'new',
+              headless: false,
               args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
 
             const page = await browser.newPage();
-            await page.setViewport({ width: 1280, height: 800 });
 
-            for (let i = 0; i < 216; i++) {
-              try {
-                await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            try {
+              const videoUrl = 'https://rumble.com/v41bpuq-school-march-festival.html';
+              await page.goto(videoUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+              await page.setViewport({ width: 1280, height: 720 });
 
-                // Esperar botón de play
-                const playButton = await page.waitForSelector('button[aria-label="Play"]', { visible: true, timeout: 15000 });
-                await playButton.click();
+              await page.waitForSelector('.bigPlayUIInner', { timeout: 15000 });
+              await page.click('.bigPlayUIInner');
 
-                console.log(`▶️ Reproducción ${i + 1} iniciada.`);
-                await new Promise(r => setTimeout(r, 8000 + Math.random() * 3000));
-              } catch (e) {
-                console.error(`❌ Error en iteración ${i + 1}: ${e.message}`);
-              }
+              console.log('🎬 Reproducción iniciada');
+
+              // Simula scroll y actividad
+              await page.mouse.wheel({ deltaY: 400 });
+              await new Promise(resolve => setTimeout(resolve, 30000)); // espera 30 segundos
+            } catch (error) {
+              console.error(`❌ Error: ${error.message}`);
+            } finally {
+              await browser.close();
             }
-
-            await browser.close();
           })();
           EOF
 
-      - name: Ejecutar script de visita
+      - name: Ejecutar visita
         run: node visitVideo.js

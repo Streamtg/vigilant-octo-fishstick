@@ -1,27 +1,32 @@
-name: Puppeteer Video Traffic
+name: Visit Video on Rumble - 216 Iteraciones
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"  # Cada hora
 
 jobs:
   visit-video:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        instance: [1]  # Solo 1 para prueba, luego amplías a 216
+    timeout-minutes: 60
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: Install Puppeteer
+      - name: Install puppeteer
         run: npm install puppeteer
 
-      - name: Run Puppeteer script
+      - name: Create visitVideo.js
         run: |
-          node -e "
+          cat << 'EOF' > visitVideo.js
           const puppeteer = require('puppeteer');
+
           (async () => {
             const url = 'https://rumble.com/v41bpuq-school-march-festival.html';
             const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -29,14 +34,20 @@ jobs:
 
             try {
               await page.goto(url, { waitUntil: 'networkidle2', timeout: 90000 });
-              for (let i = 0; i < 10; i++) {
+
+              for (let i = 0; i < 216; i++) {
+                await page.waitForSelector('.bigPlayUIInner.ctp', { visible: true, timeout: 10000 });
                 await page.click('.bigPlayUIInner.ctp');
                 console.log(`Clicked play button iteration ${i + 1}`);
-                await new Promise(r => setTimeout(r, 7000)); // esperar 7 segundos
+                await new Promise(r => setTimeout(r, 7000));
               }
             } catch (e) {
               console.error('Error:', e);
             }
+
             await browser.close();
           })();
-          "
+          EOF
+
+      - name: Run visitVideo script
+        run: node visitVideo.js

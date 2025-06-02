@@ -1,4 +1,4 @@
-name: Visit Video on Rumble - 216 Iteraciones
+name: Visit Rumble Video with Real Browser - 216 Iteraciones
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
 jobs:
   visit-video:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
@@ -29,25 +29,45 @@ jobs:
 
           (async () => {
             const url = 'https://rumble.com/v41bpuq-school-march-festival.html';
-            const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+
+            const browser = await puppeteer.launch({
+              headless: false, // Navegador visible (real)
+              args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+
             const page = await browser.newPage();
+            await page.setViewport({ width: 1280, height: 800 });
 
             try {
-              await page.goto(url, { waitUntil: 'networkidle2', timeout: 90000 });
+              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 
               for (let i = 0; i < 216; i++) {
-                await page.waitForSelector('.bigPlayUIInner.ctp', { visible: true, timeout: 10000 });
-                await page.click('.bigPlayUIInner.ctp');
-                console.log(`Clicked play button iteration ${i + 1}`);
-                await new Promise(r => setTimeout(r, 7000));
+                try {
+                  // Esperar a que el iframe del reproductor esté cargado
+                  const frames = page.frames();
+                  const playerFrame = frames.find(f => f.url().includes("rumble.com/embed"));
+                  
+                  if (playerFrame) {
+                    const playButton = await playerFrame.waitForSelector('button[aria-label="Play"]', { visible: true, timeout: 10000 });
+                    await playButton.click();
+                    console.log(`Reproducción ${i + 1} iniciada.`);
+                  } else {
+                    console.log("No se encontró el iframe del reproductor.");
+                  }
+
+                  // Esperar 6-8 segundos aleatoriamente
+                  await new Promise(r => setTimeout(r, 6000 + Math.random() * 2000));
+                } catch (error) {
+                  console.error(`Error en la iteración ${i + 1}:`, error.message);
+                }
               }
-            } catch (e) {
-              console.error('Error:', e);
+            } catch (err) {
+              console.error("Error general:", err.message);
             }
 
             await browser.close();
           })();
           EOF
 
-      - name: Run visitVideo script
+      - name: Ejecutar script de visita
         run: node visitVideo.js

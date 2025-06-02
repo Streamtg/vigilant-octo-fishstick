@@ -1,92 +1,42 @@
-name: Rumble Video Traffic without Proxies - 216 Instances
+name: Puppeteer Video Traffic
 
 on:
   workflow_dispatch:
 
-env:
-  VIDEO_URL: 'https://rumble.com/v41bpuq-school-march-festival.html'  # <-- Aquí está el enlace
-
 jobs:
-  traffic:
+  visit-video:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        instance: [1-216]
-    concurrency:
-      group: rumble-traffic
-      cancel-in-progress: false
+        instance: [1]  # Solo 1 para prueba, luego amplías a 216
     steps:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: '18'
 
-      - name: Install puppeteer
+      - name: Install Puppeteer
         run: npm install puppeteer
 
-      - name: Create and run Puppeteer script inline
-        id: run_traffic
+      - name: Run Puppeteer script
         run: |
-          echo "const puppeteer = require('puppeteer');
-
-          const instanceNumber = '${{ matrix.instance }}';
-          const url = process.env.VIDEO_URL;
-
-          const referers = [
-            'https://www.facebook.com/',
-            'https://twitter.com/',
-            'https://www.instagram.com/',
-            'https://www.tiktok.com/'
-          ];
-
-          function wait(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-          }
-
+          node -e "
+          const puppeteer = require('puppeteer');
           (async () => {
-            const launchOptions = {
-              headless: true,
-              args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            };
-
-            const browser = await puppeteer.launch(launchOptions);
+            const url = 'https://rumble.com/v41bpuq-school-march-festival.html';
+            const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
             const page = await browser.newPage();
 
-            const referer = referers[Math.floor(Math.random() * referers.length)];
-            await page.setExtraHTTPHeaders({
-              referer: referer,
-              'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-            });
-
-            const fs = require('fs');
-            const logFile = \`traffic-log-instance-\${instanceNumber}.txt\`;
-            const logStream = fs.createWriteStream(logFile, { flags: 'a' });
-
-            for(let i=1; i<=10; i++) {
-              try {
-                logStream.write(\`Instance \${instanceNumber} - Iteration \${i}: Navigating to page\n\`);
-                await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-                await page.waitForSelector('.bigPlayUIInner.ctp', { timeout: 60000 });
+            try {
+              await page.goto(url, { waitUntil: 'networkidle2', timeout: 90000 });
+              for (let i = 0; i < 10; i++) {
                 await page.click('.bigPlayUIInner.ctp');
-                logStream.write(\`Instance \${instanceNumber} - Iteration \${i}: Clicked play\n\`);
-                await wait(7000);
-                logStream.write(\`Instance \${instanceNumber} - Iteration \${i}: Waited 7 seconds\n\`);
-              } catch (e) {
-                logStream.write(\`Instance \${instanceNumber} - Iteration \${i}: Error - \${e.message}\n\`);
+                console.log(`Clicked play button iteration ${i + 1}`);
+                await new Promise(r => setTimeout(r, 7000)); // esperar 7 segundos
               }
+            } catch (e) {
+              console.error('Error:', e);
             }
-
             await browser.close();
-            logStream.end();
-            console.log(\`Instance \${instanceNumber} finished\`);
-          })();" > visit.js
-
-          node visit.js
-        env:
-          VIDEO_URL: ${{ env.VIDEO_URL }}
-
-      - name: Upload logs
-        uses: actions/upload-artifact@v3
-        with:
-          name: traffic-logs-instance-${{ matrix.instance }}
-          path: traffic-log-instance-${{ matrix.instance }}.txt
+          })();
+          "

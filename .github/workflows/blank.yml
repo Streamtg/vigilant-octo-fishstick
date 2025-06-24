@@ -1,17 +1,17 @@
-name: Visita humana al blog
+name: Visita humana al blog (Windows)
 
 on:
   workflow_dispatch:
 
 jobs:
   visit-blog:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 20
 
     strategy:
       fail-fast: false
       matrix:
-        instance: [1, 2, 3, 4, 5]  # Puedes subir hasta 20 cuando confirmes estabilidad
+        instance: [1, 2, 3, 4, 5]  # Aumenta cuando confirmes estabilidad
 
     steps:
       - name: 📁 Checkout del repositorio
@@ -22,88 +22,59 @@ jobs:
         with:
           node-version: 20
 
-      - name: 🧱 Instalar dependencias del sistema
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 libxi6 \
-            libxtst6 libnss3 libxrandr2 libasound2t64 libatk1.0-0 libgtk-3-0 libdrm2 libgbm1 \
-            libxshmfence1 libxinerama1 libxss1 libglu1-mesa
-
       - name: 📦 Instalar Puppeteer + Stealth
         run: npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
       - name: 📝 Crear script de navegación
         run: |
-          cat << 'EOF' > visitBlog.js
-          const puppeteer = require('puppeteer-extra');
-          const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-          puppeteer.use(StealthPlugin());
+          echo const puppeteer = require('puppeteer-extra'); > visitBlog.js
+          echo const StealthPlugin = require('puppeteer-extra-plugin-stealth'); >> visitBlog.js
+          echo puppeteer.use(StealthPlugin()); >> visitBlog.js
+          echo const userAgents = [ >> visitBlog.js
+          echo   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', >> visitBlog.js
+          echo   'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15', >> visitBlog.js
+          echo   'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0', >> visitBlog.js
+          echo   'Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.101 Mobile Safari/537.36', >> visitBlog.js
+          echo   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/121.0.6167.140 Mobile/15E148 Safari/604.1' >> visitBlog.js
+          echo ]; >> visitBlog.js
+          echo const referers = [ >> visitBlog.js
+          echo   'https://www.google.com/', >> visitBlog.js
+          echo   'https://www.facebook.com/', >> visitBlog.js
+          echo   'https://twitter.com/', >> visitBlog.js
+          echo   'https://www.reddit.com/', >> visitBlog.js
+          echo   'https://www.bing.com/', >> visitBlog.js
+          echo   'https://duckduckgo.com/' >> visitBlog.js
+          echo ]; >> visitBlog.js
+          echo const getRandom = arr => arr[Math.floor(Math.random() * arr.length)]; >> visitBlog.js
+          echo (async () => { >> visitBlog.js
+          echo const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] }); >> visitBlog.js
+          echo const page = await browser.newPage(); >> visitBlog.js
+          echo const userAgent = getRandom(userAgents); >> visitBlog.js
+          echo const referer = getRandom(referers); >> visitBlog.js
+          echo const width = 800 + Math.floor(Math.random() * 400); >> visitBlog.js
+          echo const height = 600 + Math.floor(Math.random() * 300); >> visitBlog.js
+          echo await page.setUserAgent(userAgent); >> visitBlog.js
+          echo await page.setExtraHTTPHeaders({ referer }); >> visitBlog.js
+          echo await page.setViewport({ width, height }); >> visitBlog.js
+          echo console.log('🧠 User-Agent:', userAgent); >> visitBlog.js
+          echo console.log('🔗 Referer:', referer); >> visitBlog.js
+          echo try { >> visitBlog.js
+          echo await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'domcontentloaded', timeout: 60000 }); >> visitBlog.js
+          echo for (let i = 0; i < 4; i++) { >> visitBlog.js
+          echo   await page.mouse.wheel({ deltaY: 300 + Math.random() * 200 }); >> visitBlog.js
+          echo   await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000)); >> visitBlog.js
+          echo } >> visitBlog.js
+          echo await page.mouse.move(100 + Math.random() * 400, 100 + Math.random() * 300); >> visitBlog.js
+          echo const waitTime = 20000 + Math.random() * 20000; >> visitBlog.js
+          echo console.log(`⏱️ Esperando ${waitTime / 1000} segundos...`); >> visitBlog.js
+          echo await new Promise(resolve => setTimeout(resolve, waitTime)); >> visitBlog.js
+          echo console.log('✅ Visita completada.'); >> visitBlog.js
+          echo } catch (err) { >> visitBlog.js
+          echo console.error('❌ Error durante la navegación:', err.message); >> visitBlog.js
+          echo } finally { >> visitBlog.js
+          echo await browser.close(); >> visitBlog.js
+          echo } >> visitBlog.js
+          echo })(); >> visitBlog.js
 
-          const userAgents = [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
-            'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0',
-            'Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.101 Mobile Safari/537.36',
-            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/121.0.6167.140 Mobile/15E148 Safari/604.1'
-          ];
-
-          const referers = [
-            'https://www.google.com/',
-            'https://www.facebook.com/',
-            'https://twitter.com/',
-            'https://www.reddit.com/',
-            'https://www.bing.com/',
-            'https://duckduckgo.com/'
-          ];
-
-          const getRandom = arr => arr[Math.floor(Math.random() * arr.length)];
-
-          (async () => {
-            const browser = await puppeteer.launch({
-              headless: false,
-              args: ['--no-sandbox', '--disable-setuid-sandbox']
-            });
-
-            const page = await browser.newPage();
-
-            const userAgent = getRandom(userAgents);
-            const referer = getRandom(referers);
-            const width = 800 + Math.floor(Math.random() * 400);
-            const height = 600 + Math.floor(Math.random() * 300);
-
-            await page.setUserAgent(userAgent);
-            await page.setExtraHTTPHeaders({ referer });
-            await page.setViewport({ width, height });
-
-            console.log('🧠 User-Agent:', userAgent);
-            console.log('🔗 Referer:', referer);
-
-            try {
-              await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
-
-              // Scroll simulado
-              for (let i = 0; i < 4; i++) {
-                await page.mouse.wheel({ deltaY: 300 + Math.random() * 200 });
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-              }
-
-              await page.mouse.move(
-                100 + Math.random() * 400,
-                100 + Math.random() * 300
-              );
-
-              const waitTime = 20000 + Math.random() * 20000;
-              console.log(`⏱️ Esperando ${(waitTime / 1000).toFixed(1)} segundos...`);
-              await new Promise(resolve => setTimeout(resolve, waitTime));
-
-              console.log('✅ Visita completada.');
-            } catch (err) {
-              console.error('❌ Error durante la navegación:', err.message);
-            } finally {
-              await browser.close();
-            }
-          })();
-          EOF
-
-      - name: 🚀 Ejecutar visita con Xvfb
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" node visitBlog.js
+      - name: 🚀 Ejecutar visita
+        run: node visitBlog.js

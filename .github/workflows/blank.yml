@@ -1,17 +1,17 @@
-name: Visita al blog simulada (Windows)
+name: Visita simulada al blog (macOS)
 
 on:
   workflow_dispatch:
 
 jobs:
   visit-blog:
-    runs-on: windows-latest
+    runs-on: macos-latest
     timeout-minutes: 20
 
     strategy:
       fail-fast: false
       matrix:
-        instance: [1, 2, 3, 4, 5] # Puedes ampliar esto para visitas simultáneas
+        instance: [1, 2, 3, 4, 5]
 
     steps:
       - name: Checkout del repositorio
@@ -25,10 +25,9 @@ jobs:
       - name: Instalar Puppeteer y plugins
         run: npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
-      - name: Crear script visitBlog.js
-        shell: pwsh
+      - name: Crear archivo visitBlog.js
         run: |
-          @"
+          cat << 'EOF' > visitBlog.js
           const puppeteer = require('puppeteer-extra');
           const StealthPlugin = require('puppeteer-extra-plugin-stealth');
           puppeteer.use(StealthPlugin());
@@ -99,7 +98,7 @@ jobs:
               await browser.close();
             }
           })();
-          "@ | Out-File -FilePath visitBlog.js -Encoding UTF8
+          EOF
 
-      - name: Ejecutar el script
+      - name: Ejecutar script
         run: node visitBlog.js

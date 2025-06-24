@@ -2,7 +2,7 @@ name: Navegación humana con Puppeteer (216 combinaciones)
 
 on:
   schedule:
-    - cron: '0 */12 * * *'  # Cada 12 horas
+    - cron: '0 */12 * * *'
   workflow_dispatch:
 
 jobs:
@@ -29,12 +29,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Instalar dependencias de Chromium
+      - name: Instalar dependencias de Chromium y Xvfb
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxss1 libappindicator3-1 \
-              libatk-bridge2.0-0 libatk1.0-0 libcups2 libdbus-1-3 libgdk-pixbuf2.0-0 \
-              libnspr4 libnss3 libxcomposite1 libxdamage1 libxrandr2 xdg-utils wget
+            libatk-bridge2.0-0 libatk1.0-0 libcups2 libdbus-1-3 libgdk-pixbuf2.0-0 \
+            libnspr4 libnss3 libxcomposite1 libxdamage1 libxrandr2 xdg-utils wget xvfb
 
       - name: Crear script Puppeteer con navegación humana
         run: |
@@ -64,7 +64,7 @@ jobs:
 
           (async () => {
             const browser = await puppeteer.launch({
-              headless: true,
+              headless: false,
               args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
 
@@ -84,7 +84,6 @@ jobs:
 
             await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'networkidle2' });
 
-            // Espera aleatoria inicial
             await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
 
             await page.evaluate(async () => {
@@ -96,10 +95,10 @@ jobs:
 
             await page.mouse.move(100 + Math.random() * 300, 100 + Math.random() * 300);
 
-            // Nueva espera manual
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
             console.log(`✅ Navegación terminada para GO=${process.env.GO_VERSION} FLAG=${process.env.FLAG}`);
+
             await browser.close();
           })();
           EOF
@@ -110,5 +109,5 @@ jobs:
           npm init -y
           npm install puppeteer
 
-      - name: Ejecutar script Puppeteer
-        run: node puppeteer-script/index.js
+      - name: Ejecutar script Puppeteer con Xvfb
+        run: xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' node puppeteer-script/index.js

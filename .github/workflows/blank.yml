@@ -1,4 +1,4 @@
-name: Visita humana al blog (Windows)
+name: Visita al blog simulada (Windows)
 
 on:
   workflow_dispatch:
@@ -11,21 +11,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [1, 2, 3, 4, 5]
+        instance: [1, 2, 3, 4, 5] # Puedes ampliar esto para visitas simultáneas
 
     steps:
-      - name: 📁 Checkout del repositorio
+      - name: Checkout del repositorio
         uses: actions/checkout@v3
 
-      - name: 🧰 Configurar Node.js
+      - name: Configurar Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      - name: 📦 Instalar Puppeteer + Stealth
+      - name: Instalar Puppeteer y plugins
         run: npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
-      - name: 📝 Crear script visitBlog.js
+      - name: Crear script visitBlog.js
         shell: pwsh
         run: |
           @"
@@ -69,11 +69,14 @@ jobs:
             await page.setExtraHTTPHeaders({ referer });
             await page.setViewport({ width, height });
 
-            console.log('User-Agent:', userAgent);
-            console.log('Referer:', referer);
+            console.log('User-Agent utilizado:', userAgent);
+            console.log('Referer simulado:', referer);
 
             try {
-              await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
+              await page.goto('https://yoelmod.blogspot.com', {
+                waitUntil: 'domcontentloaded',
+                timeout: 60000
+              });
 
               for (let i = 0; i < 4; i++) {
                 await page.mouse.wheel({ deltaY: 300 + Math.random() * 200 });
@@ -89,7 +92,7 @@ jobs:
               console.log(`Esperando ${(waitTime / 1000).toFixed(1)} segundos...`);
               await new Promise(resolve => setTimeout(resolve, waitTime));
 
-              console.log('Visita completada.');
+              console.log('Visita completada exitosamente.');
             } catch (err) {
               console.error('Error durante la navegación:', err.message);
             } finally {
@@ -98,5 +101,5 @@ jobs:
           })();
           "@ | Out-File -FilePath visitBlog.js -Encoding UTF8
 
-      - name: 🚀 Ejecutar visita
+      - name: Ejecutar el script
         run: node visitBlog.js

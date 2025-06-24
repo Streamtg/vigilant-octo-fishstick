@@ -1,63 +1,119 @@
-name: Visit Rumble Video
+name: Navegación humana con Puppeteer (216 combinaciones)
 
 on:
+  schedule:
+    - cron: '0 */12 * * *'  # Cada 12 horas
   workflow_dispatch:
 
 jobs:
-  visit-rumble:
+  puppeteer-cartesian:
     runs-on: ubuntu-latest
+
     strategy:
+      max-parallel: 20  # Máximo en paralelo; el resto se encola
+      fail-fast: false
       matrix:
-        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                   11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        go: [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.1, 2.2]
+        flag: [A, B, C, D, E, F, G, H, I, G, K, L, M, N, Ñ, O, P, K]
+
+    env:
+      GO_VERSION: ${{ matrix.go }}
+      FLAG: ${{ matrix.flag }}
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Mostrar combinación actual
+        run: echo "GO=${GO_VERSION}, FLAG=${FLAG}"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '20'
 
-      - name: Install Puppeteer & Stealth
+      - name: Instalar dependencias de Chromium
         run: |
-          npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxss1 libappindicator3-1 libasound2 \
+              libatk-bridge2.0-0 libatk1.0-0 libcups2 libdbus-1-3 libgdk-pixbuf2.0-0 \
+              libnspr4 libnss3 libxcomposite1 libxdamage1 libxrandr2 xdg-utils wget
 
-      - name: Create visitVideo.js
+      - name: Crear script Puppeteer con navegación humana
         run: |
-          cat << 'EOF' > visitVideo.js
-          const puppeteer = require('puppeteer-extra');
-          const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-          puppeteer.use(StealthPlugin());
+          mkdir puppeteer-script
+          cat << 'EOF' > puppeteer-script/index.js
+          const puppeteer = require('puppeteer');
+
+          const userAgents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
+            'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0',
+            'Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.101 Mobile Safari/537.36',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/121.0.6167.140 Mobile/15E148 Safari/604.1'
+          ];
+
+          const referers = [
+            'https://www.google.com/',
+            'https://www.facebook.com/',
+            'https://twitter.com/',
+            'https://www.reddit.com/',
+            'https://www.bing.com/',
+            'https://www.youtube.com/',
+            'https://duckduckgo.com/'
+          ];
+
+          const getRandom = arr => arr[Math.floor(Math.random() * arr.length)];
 
           (async () => {
             const browser = await puppeteer.launch({
-              headless: false,
+              headless: true,
               args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
 
             const page = await browser.newPage();
 
-            try {
-              const videoUrl = 'https://rumble.com/v41bpuq-school-march-festival.html';
-              await page.goto(videoUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-              await page.setViewport({ width: 1280, height: 720 });
+            const userAgent = getRandom(userAgents);
+            const referer = getRandom(referers);
+            const width = 800 + Math.floor(Math.random() * 400);
+            const height = 600 + Math.floor(Math.random() * 300);
 
-              await page.waitForSelector('.bigPlayUIInner', { timeout: 15000 });
-              await page.click('.bigPlayUIInner');
+            await page.setUserAgent(userAgent);
+            await page.setExtraHTTPHeaders({ referer });
+            await page.setViewport({ width, height });
 
-              console.log('🎬 Reproducción iniciada');
+            console.log(`🧠 Navegando como: ${userAgent}`);
+            console.log(`🔗 Referer simulado: ${referer}`);
 
-              // Simula scroll y actividad
-              await page.mouse.wheel({ deltaY: 400 });
-              await new Promise(resolve => setTimeout(resolve, 30000)); // espera 30 segundos
-            } catch (error) {
-              console.error(`❌ Error: ${error.message}`);
-            } finally {
-              await browser.close();
-            }
+            await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'networkidle2' });
+            await page.waitForTimeout(2000 + Math.random() * 3000);
+
+            await page.evaluate(async () => {
+              for (let i = 0; i < 5; i++) {
+                window.scrollBy(0, 300 + Math.random() * 200);
+                await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+              }
+            });
+
+            await page.mouse.move(100 + Math.random() * 300, 100 + Math.random() * 300);
+            await page.waitForTimeout(1000 + Math.random() * 1000);
+
+            const filename = `screenshot-${process.env.GO_VERSION}-${process.env.FLAG}.png`;
+            await page.screenshot({ path: filename });
+
+            console.log(`✅ Captura tomada: ${filename}`);
+            await browser.close();
           })();
           EOF
 
-      - name: Ejecutar visita
-        run: node visitVideo.js
+      - name: Instalar Puppeteer
+        run: |
+          cd puppeteer-script
+          npm init -y
+          npm install puppeteer
+
+      - name: Ejecutar script Puppeteer
+        run: node puppeteer-script/index.js
+
+      - name: Subir captura de pantalla
+        uses: actions/upload-artifact@v4
+        with:
+          name: captura-${{ matrix.go }}-${{ matrix.flag }}
+          path: puppeteer-script/screenshot-${{ matrix.go }}-${{ matrix.flag }}.png

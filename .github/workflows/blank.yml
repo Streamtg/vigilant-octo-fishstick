@@ -1,4 +1,4 @@
-name: Visit Blog Human-Like
+name: Visita humana al blog con Puppeteer
 
 on:
   workflow_dispatch:
@@ -6,25 +6,29 @@ on:
 jobs:
   visit-blog:
     runs-on: ubuntu-latest
+    timeout-minutes: 20  # Evita cancelación automática
+
     strategy:
+      fail-fast: false
       matrix:
-        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                   11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        instance: [1, 2, 3, 4, 5]  # ← Puedes aumentar a 20 cuando confirmes estabilidad
 
     steps:
-      - name: Checkout repo
+      - name: 📁 Clonar el repositorio
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: 🧰 Configurar Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      - name: Install Puppeteer & Stealth
-        run: |
-          npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+      - name: 📦 Instalar Puppeteer
+        run: npm install puppeteer
 
-      - name: Create visitBlog.js
+      - name: 📦 Instalar puppeteer-extra y plugin stealth
+        run: npm install puppeteer-extra puppeteer-extra-plugin-stealth
+
+      - name: 📝 Crear script de navegación
         run: |
           cat << 'EOF' > visitBlog.js
           const puppeteer = require('puppeteer-extra');
@@ -67,37 +71,35 @@ jobs:
             await page.setExtraHTTPHeaders({ referer });
             await page.setViewport({ width, height });
 
-            console.log('🧠 User-Agent:', userAgent);
+            console.log('🧠 Navegando como:', userAgent);
             console.log('🔗 Referer:', referer);
 
             try {
               await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-              // Simula scroll
+              // Simular scroll humano
               for (let i = 0; i < 4; i++) {
                 await page.mouse.wheel({ deltaY: 300 + Math.random() * 200 });
                 await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
               }
 
-              // Mueve el mouse aleatoriamente
               await page.mouse.move(
                 100 + Math.random() * 400,
                 100 + Math.random() * 300
               );
 
-              // Espera entre 20-40 segundos para simular permanencia
               const waitTime = 20000 + Math.random() * 20000;
-              console.log(`⏱️ Esperando ${(waitTime / 1000).toFixed(1)}s`);
+              console.log(`⏱️ Esperando ${(waitTime / 1000).toFixed(1)} segundos...`);
               await new Promise(resolve => setTimeout(resolve, waitTime));
 
               console.log('✅ Visita completada.');
-            } catch (error) {
-              console.error(`❌ Error: ${error.message}`);
+            } catch (err) {
+              console.error('❌ Error durante la navegación:', err.message);
             } finally {
               await browser.close();
             }
           })();
           EOF
 
-      - name: Ejecutar visita simulada al blog
+      - name: 🚀 Ejecutar visita al blog
         run: node visitBlog.js

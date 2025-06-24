@@ -1,4 +1,4 @@
-name: Visita humana al blog con Xvfb
+name: Visita humana al blog
 
 on:
   workflow_dispatch:
@@ -11,27 +11,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [1, 2, 3, 4, 5]
+        instance: [1, 2, 3, 4, 5]  # Puedes subir hasta 20 cuando confirmes estabilidad
 
     steps:
-      - name: 📁 Checkout
+      - name: 📁 Checkout del repositorio
         uses: actions/checkout@v3
 
-      - name: 🧰 Setup Node.js
+      - name: 🧰 Configurar Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      - name: 📦 Instalar dependencias del sistema
+      - name: 🧱 Instalar dependencias del sistema
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 libxi6 \
-            libxtst6 libnss3 libxrandr2 libasound2 libatk1.0-0 libgtk-3-0 libdrm2 libgbm1 \
+            libxtst6 libnss3 libxrandr2 libasound2t64 libatk1.0-0 libgtk-3-0 libdrm2 libgbm1 \
             libxshmfence1 libxinerama1 libxss1 libglu1-mesa
 
-      - name: 📦 Instalar Puppeteer y Stealth
-        run: |
-          npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+      - name: 📦 Instalar Puppeteer + Stealth
+        run: npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
       - name: 📝 Crear script de navegación
         run: |
@@ -82,6 +81,7 @@ jobs:
             try {
               await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
+              // Scroll simulado
               for (let i = 0; i < 4; i++) {
                 await page.mouse.wheel({ deltaY: 300 + Math.random() * 200 });
                 await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));

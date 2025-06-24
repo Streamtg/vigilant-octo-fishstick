@@ -1,4 +1,4 @@
-name: Visita humana al blog con Puppeteer
+name: Visita humana al blog con Xvfb
 
 on:
   workflow_dispatch:
@@ -6,27 +6,32 @@ on:
 jobs:
   visit-blog:
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # Evita cancelación automática
+    timeout-minutes: 20
 
     strategy:
       fail-fast: false
       matrix:
-        instance: [1, 2, 3, 4, 5]  # ← Puedes aumentar a 20 cuando confirmes estabilidad
+        instance: [1, 2, 3, 4, 5]
 
     steps:
-      - name: 📁 Clonar el repositorio
+      - name: 📁 Checkout
         uses: actions/checkout@v3
 
-      - name: 🧰 Configurar Node.js
+      - name: 🧰 Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      - name: 📦 Instalar Puppeteer
-        run: npm install puppeteer
+      - name: 📦 Instalar dependencias del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 libxi6 \
+            libxtst6 libnss3 libxrandr2 libasound2 libatk1.0-0 libgtk-3-0 libdrm2 libgbm1 \
+            libxshmfence1 libxinerama1 libxss1 libglu1-mesa
 
-      - name: 📦 Instalar puppeteer-extra y plugin stealth
-        run: npm install puppeteer-extra puppeteer-extra-plugin-stealth
+      - name: 📦 Instalar Puppeteer y Stealth
+        run: |
+          npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
       - name: 📝 Crear script de navegación
         run: |
@@ -71,13 +76,12 @@ jobs:
             await page.setExtraHTTPHeaders({ referer });
             await page.setViewport({ width, height });
 
-            console.log('🧠 Navegando como:', userAgent);
+            console.log('🧠 User-Agent:', userAgent);
             console.log('🔗 Referer:', referer);
 
             try {
               await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-              // Simular scroll humano
               for (let i = 0; i < 4; i++) {
                 await page.mouse.wheel({ deltaY: 300 + Math.random() * 200 });
                 await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
@@ -101,5 +105,4 @@ jobs:
           })();
           EOF
 
-      - name: 🚀 Ejecutar visita al blog
-        run: node visitBlog.js
+      - name: 🚀 Ejecut

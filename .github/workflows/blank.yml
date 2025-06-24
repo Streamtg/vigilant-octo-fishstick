@@ -69,8 +69,8 @@ jobs:
             await page.setExtraHTTPHeaders({ referer });
             await page.setViewport({ width, height });
 
-            console.log('🧠 User-Agent:', userAgent);
-            console.log('🔗 Referer:', referer);
+            console.log('User-Agent:', userAgent);
+            console.log('Referer:', referer);
 
             try {
               await page.goto('https://yoelmod.blogspot.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -86,12 +86,12 @@ jobs:
               );
 
               const waitTime = 20000 + Math.random() * 20000;
-              console.log(`⏱️ Esperando ${(waitTime / 1000).toFixed(1)} segundos...`);
+              console.log(`Esperando ${(waitTime / 1000).toFixed(1)} segundos...`);
               await new Promise(resolve => setTimeout(resolve, waitTime));
 
-              console.log('✅ Visita completada.');
+              console.log('Visita completada.');
             } catch (err) {
-              console.error('❌ Error durante la navegación:', err.message);
+              console.error('Error durante la navegación:', err.message);
             } finally {
               await browser.close();
             }

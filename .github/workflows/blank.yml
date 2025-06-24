@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [1, 2, 3, 4, 5]  # Puedes subirlo a más para aumentar vistas paralelas
+        instance: [1, 2, 3, 4, 5]
 
     steps:
       - name: 📁 Checkout del repositorio

@@ -72,13 +72,8 @@ jobs:
     - name: Start Ngrok HTTP with custom URL
       run: |
         ngrok http --url=ready-unlikely-osprey.ngrok-free.app 8080
-
-
-
-
 # Workflow combinado: Deploy Jekyll y Go Build con Ngrok
-name: Deploy Jekyll and Go Build with Ngrok Setup
-
+    - name: Deploy Jekyll and Go Build with Ngrok Setup
 on:
   # Configuración de eventos para ambos workflows
   push:

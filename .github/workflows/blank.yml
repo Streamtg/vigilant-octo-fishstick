@@ -1,9 +1,9 @@
 name: Telegram FileStreamBot WebUI + Ngrok
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'
   workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Cada 6 horas
 
 jobs:
   run:
@@ -19,9 +19,10 @@ jobs:
       FQDN: ${{ secrets.FQDN }}
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout del repositorio
+        uses: actions/checkout@v2
 
-      - name: Instalar dependencias
+      - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
@@ -35,12 +36,41 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parchear compatibilidad Pyrogram 2.x
+      - name: Parchear compatibilidad con Pyrogram 2
         run: |
-          cd TG-FileStreamBot
-          sed -i 's/session_name=/name=/g' WebStreamer/bot/__init__.py || true
-          sed -i 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py || true
-          sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py || true
+          echo "Parcheando uso de message_id..."
+          sed -i 's/message\.message_id/message.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
+          sed -i 's/log_msg\.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
+
+      - name: Parchear función get_unique_id para evitar error de attrd
+        run: |
+          cat << 'EOF' > TG-FileStreamBot/WebStreamer/utils/file_id.py
+from pyrogram.types import Message
+
+def get_unique_id(message: Message) -> str:
+    attrd = None
+
+    if message.media:
+        if message.photo:
+            attrd = message.photo.file_unique_id
+        elif message.video:
+            attrd = message.video.file_unique_id
+        elif message.document:
+            attrd = message.document.file_unique_id
+        elif message.audio:
+            attrd = message.audio.file_unique_id
+        elif message.voice:
+            attrd = message.voice.file_unique_id
+        elif message.video_note:
+            attrd = message.video_note.file_unique_id
+        elif message.sticker:
+            attrd = message.sticker.file_unique_id
+
+    if attrd:
+        return attrd[:6]
+    else:
+        return "000000"
+EOF
 
       - name: Instalar y configurar Ngrok
         run: |

@@ -1,68 +1,71 @@
 name: Telegram FileStreamBot WebUI + Ngrok
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
+on: workflow_dispatch: schedule: - cron: '0 */6 * * *'  # Cada 6 horas
 
-jobs:
-  run:
-    runs-on: ubuntu-latest
-    timeout-minutes: 360
+jobs: run: runs-on: ubuntu-latest timeout-minutes: 360
 
-    env:
-      API_ID: ${{ secrets.API_ID }}
-      API_HASH: ${{ secrets.API_HASH }}
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-      FQDN: ${{ secrets.FQDN }}
-      NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-      HAS_SSL: ${{ secrets.HAS_SSL }}
-      PORT: ${{ secrets.PORT }}
+env:
+  API_ID: ${{ secrets.API_ID }}
+  API_HASH: ${{ secrets.API_HASH }}
+  BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+  BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+  NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+  FQDN: ${{ secrets.FQDN }}
+  HAS_SSL: ${{ secrets.HAS_SSL }}
+  PORT: ${{ secrets.PORT }}
 
-    steps:
-      - name: Checkout del repositorio
-        uses: actions/checkout@v2
+steps:
+  - name: Clonar el repositorio modificado
+    run: |
+      git clone --branch Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
+      cd TG-FileStreamBot
 
-      - name: Instalar dependencias del sistema
-        run: |
-          sudo apt update
-          sudo apt install -y python3-venv curl git
+  - name: Instalar dependencias del sistema
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y python3 python3-pip python3-venv curl
 
-      - name: Clonar TG-FileStreamBot (Old-v2.0)
-        run: |
-          git clone --branch Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
-          cd TG-FileStreamBot
-          python3 -m venv venv
-          . ./venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+  - name: Configurar entorno virtual
+    run: |
+      cd TG-FileStreamBot
+      python3 -m venv venv
+      source venv/bin/activate
+      pip install --upgrade pip
+      pip install -r requirements.txt
 
-      - name: Instalar Ngrok
-        run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-          | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-          | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install -y ngrok
+  - name: Parchear archivo get_unique_id en file_id.py
+    run: |
+      cd TG-FileStreamBot
+      cat > WebStreamer/utils/file_id.py << 'EOF'
 
-      - name: Configurar Ngrok
-        run: |
-          ngrok config add-authtoken $NGROK_AUTH_TOKEN
+def get_unique_id(media_msg) -> str: for attr in ( "audio", "document", "photo", "sticker", "animation", "video", "voice", "video_note", ): try: file_obj = getattr(media_msg, attr) if file_obj and getattr(file_obj, "file_unique_id", None): return file_obj.file_unique_id[:6] except AttributeError: continue return "abcdef" EOF
 
-      - name: Ejecutar el bot, luego ngrok y mantener activo
-        run: |
-          cd TG-FileStreamBot
-          . ./venv/bin/activate
+- name: Parchear stream.py para compatibilidad con reply y log_msg.id
+    run: |
+      cd TG-FileStreamBot
+      sed -i 's/message.message_id/message.id/g' WebStreamer/plugins/stream.py || echo "No replace needed"
+      sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/plugins/stream.py || echo "No replace needed"
 
-          # Ejecutar el bot en segundo plano
-          nohup python3 -m WebStreamer &
+  - name: Instalar y configurar Ngrok
+    run: |
+      curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+      echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+      sudo apt-get update && sudo apt-get install -y ngrok
+      ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
 
-          # Esperar 10 segundos antes de iniciar Ngrok
-          sleep 10
+  - name: Ejecutar el Bot en segundo plano
+    run: |
+      cd TG-FileStreamBot
+      source venv/bin/activate
+      nohup python3 -m WebStreamer &
 
-          # Iniciar ngrok con dominio fijo
-          ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT &
+  - name: Esperar 10 segundos antes de iniciar Ngrok
+    run: sleep 10
 
-          # Mantener la ejecución activa por 6 horas
-          sleep 21600
+  - name: Iniciar Ngrok con subdominio personalizado
+    run: |
+      nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT &
+
+  - name: Mantener activo por 6 horas
+    run: sleep 21600
+

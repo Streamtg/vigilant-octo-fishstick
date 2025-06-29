@@ -32,7 +32,8 @@ jobs:
           git clone --branch webui https://github.com/EverythingSuckz/TG-FileStreamBot.git
           cd TG-FileStreamBot
           sudo apt-get update
-          sudo apt-get install -y python3-venv
+          sudo apt-get install -y python3-venv ntpdate
+          sudo ntpdate -u time.google.com
           python3 -m venv venv
           source ./venv/bin/activate
           pip install --upgrade pip

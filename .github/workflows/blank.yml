@@ -2,7 +2,7 @@ name: Telegram FileStreamBot WebUI + Ngrok
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Ejecutar cada 6 horas
+    - cron: '0 */6 * * *'  # Cada 6 horas
   workflow_dispatch:
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
       - name: Checkout del repositorio
         uses: actions/checkout@v2
 
-      - name: Instalar dependencias
+      - name: Instalar dependencias básicas
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
@@ -36,23 +36,16 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parchear clients.py con compatibilidad Pyrogram 2.x
+      - name: Parchear compatibilidad Pyrogram 2.x
         run: |
-          echo "from pyrogram import Client" > TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "from WebStreamer.vars import Var" >> TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "" >> TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "StreamBot = Client(" >> TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "    name='WebStreamer'," >> TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "    api_id=Var.API_ID," >> TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "    api_hash=Var.API_HASH," >> TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "    bot_token=Var.BOT_TOKEN," >> TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "    workers=Var.WORKERS," >> TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "    sleep_threshold=Var.SLEEP_THRESHOLD" >> TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo ")" >> TG-FileStreamBot/WebStreamer/bot/clients.py
-
-      - name: Parchear uso de .message_id (Pyrogram 2.x)
-        run: |
-          find TG-FileStreamBot/WebStreamer/bot/plugins -type f -name '*.py' -exec sed -i 's/\.message_id/\.id/g' {} +
+          cd TG-FileStreamBot
+          # Reemplazar session_name por name
+          sed -i 's/session_name=/name=/g' WebStreamer/bot/__init__.py || true
+          # Parchear stream.py: reemplazar message_id por id
+          sed -i 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py || true
+          sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py || true
+          # Crear archivo clients.py si no existe
+          echo 'from WebStreamer.bot import StreamBot' > WebStreamer/bot/clients.py
 
       - name: Instalar y configurar Ngrok
         run: |
@@ -67,7 +60,7 @@ jobs:
         run: |
           nohup ngrok http 8080 &
 
-      - name: Ejecutar el bot WebStreamer
+      - name: Iniciar el bot WebStreamer
         run: |
           cd TG-FileStreamBot
           . venv/bin/activate

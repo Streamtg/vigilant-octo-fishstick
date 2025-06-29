@@ -46,18 +46,16 @@ jobs:
       - name: Configurar Ngrok
         run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Ejecutar bot y ngrok
+      - name: Ejecutar Ngrok y Bot
         run: |
           cd TG-FileStreamBot
           . ./venv/bin/activate
-          # Ejecutar bot en background
-          python3 -m WebStreamer &
-
-          # Esperar 10 segundos para que el bot inicie
-          sleep 10
-
-          # Ejecutar ngrok usando FQDN y puerto
+          
+          # Ejecutar ngrok en background
           ngrok http --url=${FQDN} $PORT &
 
-          # Mantener vivo el proceso 6 horas
-          sleep 21600
+          # Esperar 10 segundos para que ngrok esté listo
+          sleep 10
+
+          # Ejecutar el bot (en primer plano)
+          python3 -m WebStreamer

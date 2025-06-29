@@ -2,7 +2,7 @@ name: Telegram FileStreamBot WebUI + Ngrok
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
+    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
   workflow_dispatch:
 
 jobs:
@@ -19,10 +19,10 @@ jobs:
       FQDN: ${{ secrets.FQDN }}
 
     steps:
-      - name: Checkout del repositorio
+      - name: Clonar el repositorio
         uses: actions/checkout@v2
 
-      - name: Instalar dependencias básicas
+      - name: Instalar dependencias
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
@@ -41,11 +41,14 @@ jobs:
           cd TG-FileStreamBot
           # Reemplazar session_name por name
           sed -i 's/session_name=/name=/g' WebStreamer/bot/__init__.py || true
-          # Parchear stream.py: reemplazar message_id por id
+          # Reemplazar message_id por id
           sed -i 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py || true
-          # Crear archivo clients.py si no existe
+          # Crear archivo clients.py completo
           echo 'from WebStreamer.bot import StreamBot' > WebStreamer/bot/clients.py
+          echo '' >> WebStreamer/bot/clients.py
+          echo 'multi_clients = []' >> WebStreamer/bot/clients.py
+          echo 'work_loads = {}' >> WebStreamer/bot/clients.py
 
       - name: Instalar y configurar Ngrok
         run: |
@@ -60,7 +63,7 @@ jobs:
         run: |
           nohup ngrok http 8080 &
 
-      - name: Iniciar el bot WebStreamer
+      - name: Ejecutar el bot WebStreamer
         run: |
           cd TG-FileStreamBot
           . venv/bin/activate

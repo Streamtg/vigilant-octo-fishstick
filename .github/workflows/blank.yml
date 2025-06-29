@@ -36,24 +36,29 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parchear código para Pyrogram 2.x
+      - name: Aplicar parches de compatibilidad Pyrogram 2.x
         run: |
-          echo 'from pyrogram import Client' > TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo 'from WebStreamer.vars import Var' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo '' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo 'StreamBot = Client(' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo '    name="WebStreamer",' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo '    api_id=Var.API_ID,' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo '    api_hash=Var.API_HASH,' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo '    bot_token=Var.BOT_TOKEN,' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo '    workers=Var.WORKERS,' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo '    sleep_threshold=Var.SLEEP_THRESHOLD' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo ')' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          # Reescribimos __init__.py con contenido corregido
+          cat > TG-FileStreamBot/WebStreamer/bot/__init__.py << 'EOF'
+from pyrogram import Client
+from WebStreamer.vars import Var
 
+StreamBot = Client(
+    name="WebStreamer",
+    api_id=Var.API_ID,
+    api_hash=Var.API_HASH,
+    bot_token=Var.BOT_TOKEN,
+    workers=Var.WORKERS,
+    sleep_threshold=Var.SLEEP_THRESHOLD
+)
+EOF
+
+          # Reemplazar message_id por id en plugins/stream.py
           sed -i 's/message.message_id/message.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
 
-          cat > TG-FileStreamBot/WebStreamer/utils/file_id.py <<EOF
+          # Escribir función get_unique_id corregida en utils/file_id.py
+          cat > TG-FileStreamBot/WebStreamer/utils/file_id.py << 'EOF'
 def get_unique_id(msg):
     attrd = getattr(msg, "file_unique_id", "abcdef")
     return attrd[:6]
@@ -67,8 +72,7 @@ EOF
           ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
       - name: Iniciar Ngrok
-        run: |
-          nohup ngrok http 8080 &
+        run: nohup ngrok http 8080 &
 
       - name: Ejecutar el bot WebStreamer
         run: |

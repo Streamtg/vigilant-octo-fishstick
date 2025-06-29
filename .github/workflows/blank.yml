@@ -16,6 +16,7 @@ jobs:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
       PORT: 8080
+      FQDN: ${{ secrets.FQDN }}
 
     steps:
       - name: Checkout del repositorio
@@ -28,7 +29,7 @@ jobs:
 
       - name: Clonar TG-FileStreamBot y preparar entorno
         run: |
-          git clone --branch Telethon-modified https://github.com/DeekshithSH/TG-FileStreamBot.git
+          git clone --branch Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
           cd TG-FileStreamBot
           python3 -m venv venv
           . ./venv/bin/activate
@@ -55,8 +56,8 @@ jobs:
           # Esperar 10 segundos para que el bot inicie
           sleep 10
 
-          # Ejecutar ngrok con URL fija y puerto
-          ngrok http --url=ready-unlikely-osprey.ngrok-free.app $PORT &
+          # Ejecutar ngrok usando FQDN y puerto
+          ngrok http --url=${FQDN} $PORT &
 
           # Mantener vivo el proceso 6 horas
           sleep 21600

@@ -2,7 +2,7 @@ name: Telegram FileStreamBot WebUI + Ngrok
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -36,9 +36,9 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parchear código para compatibilidad con Pyrogram v2
+      - name: Parchear código para Pyrogram 2.x
         run: |
-          # Parcheo del cliente (session_name -> name)
+          # Reemplazar session_name por name
           echo 'from pyrogram import Client' > TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo 'from WebStreamer.vars import Var' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo '' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
@@ -53,12 +53,16 @@ jobs:
           echo 'multi_clients = StreamBot' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo 'work_loads = None' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
 
-          # message_id -> id
+          # Reemplazar message_id por id
           sed -i 's/message.message_id/message.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
 
-          # Fix para get_unique_id sin valor definido
-          sed -i 's/^def get_unique_id.*$/def get_unique_id(msg):\\n    attrd = getattr(msg, "file_unique_id", "abcdef")\\n    return attrd[:6]/' TG-FileStreamBot/WebStreamer/utils/file_id.py || true
+          # Reemplazar función defectuosa en file_id.py
+          cat > TG-FileStreamBot/WebStreamer/utils/file_id.py << EOF
+def get_unique_id(msg):
+    attrd = getattr(msg, "file_unique_id", "abcdef")
+    return attrd[:6]
+EOF
 
       - name: Instalar y configurar Ngrok
         run: |

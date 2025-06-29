@@ -43,25 +43,7 @@ jobs:
           sed -i 's/message.message_id/message.id/g' WebStreamer/plugins/stream.py
           sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/plugins/stream.py
 
-          # Sobrescribir file_id.py para corregir error
-          echo 'def get_unique_id(media_msg) -> str:
-    for attr in (
-        "audio",
-        "document",
-        "photo",
-        "sticker",
-        "animation",
-        "video",
-        "voice",
-        "video_note",
-    ):
-        try:
-            file_obj = getattr(media_msg, attr)
-            if file_obj and getattr(file_obj, "file_unique_id", None):
-                return file_obj.file_unique_id[:6]
-        except AttributeError:
-            continue
-    return "abcdef"' > WebStreamer/utils/file_id.py
+          printf 'def get_unique_id(media_msg) -> str:\n    for attr in (\n        "audio",\n        "document",\n        "photo",\n        "sticker",\n        "animation",\n        "video",\n        "voice",\n        "video_note",\n    ):\n        try:\n            file_obj = getattr(media_msg, attr)\n            if file_obj and getattr(file_obj, "file_unique_id", None):\n                return file_obj.file_unique_id[:6]\n        except AttributeError:\n            continue\n    return "abcdef"\n' > WebStreamer/utils/file_id.py
 
       - name: Iniciar el Bot (en background)
         working-directory: TG-FileStreamBot

@@ -1,6 +1,6 @@
-name: Telegram FileStreamBot con Pyrogram 2.0+ y soporte Ngrok
+name: Telegram FileStreamBot WebUI + Ngrok
 
-on: workflow_dispatch:
+on: schedule: - cron: '0 */6 * * *' workflow_dispatch:
 
 jobs: run: runs-on: ubuntu-latest timeout-minutes: 360
 
@@ -13,32 +13,35 @@ env:
   FQDN: ${{ secrets.FQDN }}
 
 steps:
-  - name: Clonar el repositorio
+  - name: Checkout del repositorio
+    uses: actions/checkout@v2
+
+  - name: Instalar dependencias
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y python3-venv curl git
+
+  - name: Clonar TG-FileStreamBot (rama v2.1)
     run: |
       git clone --branch v2.1 https://github.com/EverythingSuckz/TG-FileStreamBot.git
-
-  - name: Preparar entorno virtual e instalar dependencias
-    run: |
       cd TG-FileStreamBot
       python3 -m venv venv
       . venv/bin/activate
       pip install --upgrade pip
       pip install -r requirements.txt
 
-  - name: Parchear compatibilidad Pyrogram 2.x
+  - name: Aplicar parches de compatibilidad Pyrogram 2.x
     run: |
-      cd TG-FileStreamBot/WebStreamer
-
-      # Parchear nombre del argumento de session a name si es necesario
-      sed -i 's/session_name=/name=/' bot/__init__.py || true
-
-      # Parchear el error log_msg.message_id -> log_msg.id
-      sed -i 's/log_msg.message_id/log_msg.id/g' bot/plugins/stream.py || true
+      sed -i 's/session_name=/name=/g' TG-FileStreamBot/WebStreamer/bot/__init__.py
+      sed -i 's/message.message_id/message.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
+      sed -i 's/log_msg.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
 
   - name: Instalar y configurar Ngrok
     run: |
-      curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-      echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+      curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+      echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+        | sudo tee /etc/apt/sources.list.d/ngrok.list
       sudo apt-get update && sudo apt-get install -y ngrok
       ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
@@ -46,7 +49,7 @@ steps:
     run: |
       nohup ngrok http 8080 &
 
-  - name: Iniciar el bot
+  - name: Ejecutar el bot WebStreamer
     run: |
       cd TG-FileStreamBot
       . venv/bin/activate

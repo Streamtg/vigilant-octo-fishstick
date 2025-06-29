@@ -55,3 +55,8 @@ jobs:
       - name: Iniciar Ngrok HTTP con URL fija
         run: |
           nohup ngrok http --url=ready-unlikely-osprey.ngrok-free.app 8080 &
+          
+      - name: Keep Workflow Alive for 6 Hours
+        run: |
+          echo "Keeping the workflow alive for 6 hours"
+          sleep $((6 * 60 * 60)) # Mantiene vivo durante 6 horas

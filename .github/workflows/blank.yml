@@ -31,13 +31,11 @@ jobs:
         run: |
           git clone --branch webui https://github.com/EverythingSuckz/TG-FileStreamBot.git
 
-      - name: Instalar Chrony y sincronizar reloj (modo estricto)
+      - name: Sincronizar hora con chrony (modo pasivo, sin conflictos)
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv chrony
-          sudo systemctl stop systemd-timesyncd || true
-          sudo chronyd -q "server time.cloudflare.com iburst"
-          timedatectl status
+          sudo chronyc -a 'burst 4/4' 'makestep'
           date
           sleep 5
 

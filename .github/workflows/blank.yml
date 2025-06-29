@@ -2,7 +2,7 @@ name: Telegram WebStreamer Bot with Ngrok
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
+    - cron: '0 */6 * * *'  # Cada 6 horas
   workflow_dispatch:
 
 jobs:
@@ -21,15 +21,14 @@ jobs:
     - name: Checkout del repositorio
       uses: actions/checkout@v3
 
-    - name: Instalar dependencias básicas
+    - name: Instalar dependencias
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-venv curl jq ntpdate
 
-    - name: Sincronizar reloj del sistema (evita error BadMsgNotification)
+    - name: Sincronizar hora del sistema (evita BadMsgNotification)
       run: |
-        sudo ntpdate time.google.com
-        timedatectl
+        sudo ntpdate -s time.google.com
         date
 
     - name: Clonar TG-FileStreamBot (rama webui)
@@ -41,6 +40,11 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Parchear session_name → "WebStreamer" (Pyrogram fix)
+      run: |
+        sed -i 's/session_name *= */"/' TG-FileStreamBot/WebStreamer/bot/__init__.py
+        sed -i 's/"Web Streamer"/WebStreamer"/' TG-FileStreamBot/WebStreamer/bot/__init__.py
+
     - name: Instalar Ngrok
       run: |
         curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
@@ -49,14 +53,14 @@ jobs:
         sudo apt install -y ngrok
         ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-    - name: Iniciar Ngrok (modo background)
+    - name: Iniciar Ngrok
       run: |
         nohup ngrok http $PORT > ngrok.log &
         sleep 8
         echo "🔗 URL pública de Ngrok:"
         curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url'
 
-    - name: Iniciar el bot WebStreamer
+    - name: Lanzar el bot WebStreamer
       run: |
         cd TG-FileStreamBot
         source venv/bin/activate

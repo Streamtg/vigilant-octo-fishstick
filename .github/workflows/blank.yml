@@ -1,54 +1,51 @@
-name: Telegram FileStreamBot WebUI (Telethon)
+name: Telegram FileStreamBot con Ngrok (Telethon)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'  # Ejecuta cada 6 horas
 
 jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 360
+
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-      PORT: 8080
-      FQDN: "ready-unlikely-osprey.ngrok-free.app"
-      URL: "https://ready-unlikely-osprey.ngrok-free.app:8080/"
+      URL: https://ready-unlikely-osprey.ngrok-free.app:8080/
 
     steps:
-      - name: Checkout repositorio
-        uses: actions/checkout@v2
-
-      - name: Instalar dependencias del sistema
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-venv curl git
-
-      - name: Clonar TG-FileStreamBot desde rama Telethon-modified
+      - name: 📁 Clonar repositorio del bot
         run: |
           git clone --branch Telethon-modified https://github.com/DeekshithSH/TG-FileStreamBot.git
+          cd TG-FileStreamBot
+
+      - name: 🛠️ Preparar entorno Python
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip python3-venv
           cd TG-FileStreamBot
           python3 -m venv venv
           . venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Instalar y configurar Ngrok
+      - name: 🚀 Iniciar ngrok con retardo
         run: |
+          sudo apt install -y curl
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt-get update && sudo apt-get install -y ngrok
+          sudo apt update && sudo apt install -y ngrok
           ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+          nohup ngrok http 8080 &
 
-      - name: Iniciar Ngrok
-        run: |
-          nohup ngrok http $PORT &
-          sleep 10  # Espera para asegurar que Ngrok levanta el túnel correctamente
+          echo "Esperando 10 segundos para que Ngrok se inicialice correctamente..."
+          sleep 10
 
-      - name: Ejecutar el bot WebStreamer
+      - name: ▶️ Ejecutar WebStreamer
         run: |
           cd TG-FileStreamBot
           . venv/bin/activate

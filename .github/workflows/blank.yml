@@ -24,11 +24,11 @@ jobs:
     - name: Instalar dependencias básicas
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-venv curl gnupg jq chrony
+        sudo apt-get install -y python3-venv curl jq ntpdate
 
-    - name: Sincronizar reloj del sistema (solución error BadMsgNotification)
+    - name: Sincronizar reloj del sistema (evita error BadMsgNotification)
       run: |
-        sudo chronyc -a 'burst 4/4' makestep
+        sudo ntpdate time.google.com
         timedatectl
         date
 
@@ -41,7 +41,7 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Configurar Ngrok
+    - name: Instalar Ngrok
       run: |
         curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
         echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
@@ -51,7 +51,7 @@ jobs:
 
     - name: Iniciar Ngrok (modo background)
       run: |
-        nohup ngrok http 8080 > ngrok.log &
+        nohup ngrok http $PORT > ngrok.log &
         sleep 8
         echo "🔗 URL pública de Ngrok:"
         curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url'

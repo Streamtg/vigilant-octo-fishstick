@@ -1,15 +1,14 @@
 name: Telegram FileStreamBot WebUI + Ngrok
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
   workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'
 
 jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 360
-
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
@@ -22,7 +21,7 @@ jobs:
       - name: Checkout del repositorio
         uses: actions/checkout@v2
 
-      - name: Instalar dependencias básicas
+      - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
@@ -36,25 +35,37 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Aplicar parches de compatibilidad Pyrogram 2.x
+      - name: Aplicar parches de compatibilidad
         run: |
           cd TG-FileStreamBot
+          # Pyrogram v2 cambio: session_name => name
+          sed -i 's/session_name=/name=/g' WebStreamer/bot/__init__.py || true
 
-          # 1. session_name => name
-          sed -i 's/session_name=/name=/g' WebStreamer/bot/__init__.py
-
-          # 2. message.message_id => message.id
+          # Pyrogram v2 cambio: message_id => id
           sed -i 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py || true
 
-          # 3. parse_mode="html" => parse_mode=ParseMode.HTML
-          sed -i '1s/^/from pyrogram.enums import ParseMode\n/' WebStreamer/bot/plugins/stream.py
-          sed -i 's/parse_mode="html"/parse_mode=ParseMode.HTML/g' WebStreamer/bot/plugins/stream.py || true
-
-          # 4. Arreglar función get_unique_id
-          echo 'def get_unique_id(msg):' > WebStreamer/utils/file_id.py
-          echo '    attrd = getattr(msg, "file_unique_id", "abcdef")' >> WebStreamer/utils/file_id.py
-          echo '    return attrd[:6]' >> WebStreamer/utils/file_id.py
+          # Parche: corregir get_unique_id para evitar error por variable indefinida
+          cat > WebStreamer/utils/file_id.py << 'EOF'
+def get_unique_id(media_msg) -> str:
+    for attr in (
+        "audio",
+        "document",
+        "photo",
+        "sticker",
+        "animation",
+        "video",
+        "voice",
+        "video_note",
+    ):
+        try:
+            file_obj = getattr(media_msg, attr)
+            if file_obj and getattr(file_obj, "file_unique_id", None):
+                return file_obj.file_unique_id[:6]
+        except AttributeError:
+            continue
+    return "abcdef"
+EOF
 
       - name: Instalar y configurar Ngrok
         run: |
@@ -65,9 +76,9 @@ jobs:
 
       - name: Iniciar Ngrok
         run: |
-          nohup ngrok http 8080 &
+          nohup ngrok http $PORT &
 
-      - name: Iniciar el bot WebStreamer
+      - name: Ejecutar el bot WebStreamer
         run: |
           cd TG-FileStreamBot
           . venv/bin/activate

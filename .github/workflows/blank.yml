@@ -1,12 +1,12 @@
-name: Telegram FileStreamBot WebUI + Ngrok (Pyrogram 2.x)
+name: Telegram FileStreamBot WebUI + Ngrok (Pyrogram 2.x Compatible)
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
+    - cron: '0 */6 * * *'  # Cada 6 horas
+  workflow_dispatch:
 
 jobs:
-  bot:
+  run:
     runs-on: ubuntu-latest
     timeout-minutes: 360
 
@@ -17,13 +17,12 @@ jobs:
       BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
       PORT: 8080
       FQDN: ${{ secrets.FQDN }}
-      NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v2
 
-      - name: Instalar dependencias del sistema
+      - name: Instalar dependencias básicas
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv curl
@@ -33,43 +32,44 @@ jobs:
           git clone --branch webui https://github.com/EverythingSuckz/TG-FileStreamBot.git
           cd TG-FileStreamBot
           python3 -m venv venv
-          source venv/bin/activate
+          . venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pyrogram tgcrypto
 
-      - name: Parchear bot para Pyrogram 2.x
+      - name: Parchear bot para Pyrogram 2.x y message_id fix
         run: |
           cd TG-FileStreamBot/WebStreamer/bot
-          cat <<EOF > __init__.py
-from pyrogram import Client
-from WebStreamer.vars import Var
+          echo 'from pyrogram import Client' > __init__.py
+          echo 'from WebStreamer.vars import Var' >> __init__.py
+          echo '' >> __init__.py
+          echo 'StreamBot = Client(' >> __init__.py
+          echo '    name="WebStreamer",' >> __init__.py
+          echo '    api_id=Var.API_ID,' >> __init__.py
+          echo '    api_hash=Var.API_HASH,' >> __init__.py
+          echo '    bot_token=Var.BOT_TOKEN,' >> __init__.py
+          echo '    workers=Var.WORKERS,' >> __init__.py
+          echo '    sleep_threshold=Var.SLEEP_THRESHOLD' >> __init__.py
+          echo ')' >> __init__.py
 
-StreamBot = Client(
-    name="WebStreamer",
-    api_id=Var.API_ID,
-    api_hash=Var.API_HASH,
-    bot_token=Var.BOT_TOKEN,
-    workers=Var.WORKERS,
-    sleep_threshold=Var.SLEEP_THRESHOLD
-)
-EOF
-
-          # Corregir uso de message_id obsoleto
+          # Corregir uso de message_id en Pyrogram 2.x
           sed -i 's/log_msg\.message_id/log_msg.id/g' ../plugins/stream.py
 
       - name: Instalar y configurar Ngrok
         run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+            | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+            | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt-get update && sudo apt-get install -y ngrok
-          ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
+          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
       - name: Iniciar Ngrok
         run: |
-          nohup ngrok http $PORT &
+          nohup ngrok http 8080 &
 
       - name: Iniciar el bot WebStreamer
         run: |
           cd TG-FileStreamBot
-          source venv/bin/activate
+          . venv/bin/activate
           python3 -m WebStreamer

@@ -3,19 +3,22 @@ name: Telegram FileStreamBot WebUI + Ngrok
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # cada 6 horas
+    - cron: '0 */6 * * *'  # Cada 6 horas
 
 jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 360
+
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-      PORT: 8080
       FQDN: ${{ secrets.FQDN }}
+      NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+      HAS_SSL: ${{ secrets.HAS_SSL }}
+      PORT: ${{ secrets.PORT }}
 
     steps:
       - name: Checkout del repositorio
@@ -45,7 +48,7 @@ jobs:
 
       - name: Configurar Ngrok
         run: |
-          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+          ngrok config add-authtoken $NGROK_AUTH_TOKEN
 
       - name: Ejecutar el bot, luego ngrok y mantener activo
         run: |
@@ -58,8 +61,8 @@ jobs:
           # Esperar 10 segundos antes de iniciar Ngrok
           sleep 10
 
-          # Iniciar ngrok con dominio reservado
+          # Iniciar ngrok con dominio fijo
           ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT &
 
-          # Mantener activo por 6 horas
+          # Mantener la ejecución activa por 6 horas
           sleep 21600

@@ -26,7 +26,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
 
-      - name: Clonar TG-FileStreamBot (rama v2.1) y preparar entorno
+      - name: Clonar TG-FileStreamBot y preparar entorno
         run: |
           git clone --branch v2.1 https://github.com/EverythingSuckz/TG-FileStreamBot.git
           cd TG-FileStreamBot
@@ -35,26 +35,27 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Aplicar parches manuales con echo
+      - name: Aplicar parches manuales con echo y redirección segura
         run: |
           cd TG-FileStreamBot
 
-          # Reescribir WebStreamer/bot/__init__.py para cambiar session_name por name
+          # Patch 1: Cambiar 'session_name' por 'name' en bot/__init__.py
           grep -q 'session_name' WebStreamer/bot/__init__.py && \
           sed 's/session_name=/name=/g' WebStreamer/bot/__init__.py > WebStreamer/bot/__init__.py.tmp && \
-          mv WebStreamer/bot/__init__.py.tmp WebStreamer/bot/__init__.py || echo "No change needed for session_name"
+          mv WebStreamer/bot/__init__.py.tmp WebStreamer/bot/__init__.py || echo "No patch needed"
 
-          # Cambiar message.message_id por message.id en stream.py
+          # Patch 2: Cambiar message.message_id por message.id en plugins/stream.py
           grep -q 'message.message_id' WebStreamer/bot/plugins/stream.py && \
           sed 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py > WebStreamer/bot/plugins/stream.py.tmp && \
-          mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py || echo "No change needed for message_id 1"
+          mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py || echo "No patch needed"
 
           grep -q 'log_msg.message_id' WebStreamer/bot/plugins/stream.py && \
           sed 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py > WebStreamer/bot/plugins/stream.py.tmp && \
-          mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py || echo "No change needed for message_id 2"
+          mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py || echo "No patch needed"
 
-          # Sobrescribir get_unique_id para corregir error variable no definida
-          echo 'def get_unique_id(media_msg) -> str:
+          # Patch 3: Sobrescribir file_id.py para corregir error de variable no definida
+          cat > WebStreamer/utils/file_id.py << 'EOF'
+def get_unique_id(media_msg) -> str:
     for attr in (
         "audio",
         "document",
@@ -72,7 +73,7 @@ jobs:
         except AttributeError:
             continue
     return "abcdef"
-' > WebStreamer/utils/file_id.py
+EOF
 
       - name: Instalar y configurar Ngrok
         run: |

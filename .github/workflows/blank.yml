@@ -3,12 +3,12 @@ name: Telegram FileStreamBot WebUI + Ngrok
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # cada 6 horas
+    - cron: '0 */6 * * *'  # Cada 6 horas
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 360  # Máximo 6 horas
 
     env:
       API_ID: ${{ secrets.API_ID }}
@@ -25,7 +25,7 @@ jobs:
       - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl git
+          sudo apt-get install -y curl git python3-venv
 
       - name: Clonar TG-FileStreamBot y preparar entorno
         run: |
@@ -46,16 +46,19 @@ jobs:
       - name: Configurar Ngrok
         run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Ejecutar Ngrok y Bot
+      - name: Ejecutar el Bot, luego Ngrok y mantener activo 6 horas
         run: |
           cd TG-FileStreamBot
           . ./venv/bin/activate
-          
-          # Ejecutar ngrok en background
-          ngrok http --url=${FQDN} $PORT &
 
-          # Esperar 10 segundos para que ngrok esté listo
+          # Ejecutar el bot en segundo plano
+          nohup python3 -m WebStreamer &
+
+          # Esperar 10 segundos antes de lanzar ngrok
           sleep 10
 
-          # Ejecutar el bot (en primer plano)
-          python3 -m WebStreamer
+          # Lanzar Ngrok con el dominio configurado
+          ngrok http --hostname=${{ secrets.FQDN }} $PORT &
+
+          # Mantener el proceso activo durante 6 horas
+          sleep 21600

@@ -26,7 +26,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
 
-      - name: Clonar TG-FileStreamBot (rama v2.1)
+      - name: Clonar TG-FileStreamBot (rama v2.1) y preparar entorno
         run: |
           git clone --branch v2.1 https://github.com/EverythingSuckz/TG-FileStreamBot.git
           cd TG-FileStreamBot
@@ -35,19 +35,26 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Aplicar parches de compatibilidad
+      - name: Aplicar parches manuales con echo
         run: |
           cd TG-FileStreamBot
-          # Pyrogram v2 cambio: session_name => name
-          sed -i 's/session_name=/name=/g' WebStreamer/bot/__init__.py || true
 
-          # Pyrogram v2 cambio: message_id => id
-          sed -i 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py || true
-          sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py || true
+          # Reescribir WebStreamer/bot/__init__.py para cambiar session_name por name
+          grep -q 'session_name' WebStreamer/bot/__init__.py && \
+          sed 's/session_name=/name=/g' WebStreamer/bot/__init__.py > WebStreamer/bot/__init__.py.tmp && \
+          mv WebStreamer/bot/__init__.py.tmp WebStreamer/bot/__init__.py || echo "No change needed for session_name"
 
-          # Parche: corregir get_unique_id para evitar error por variable indefinida
-          cat > WebStreamer/utils/file_id.py << 'EOF'
-def get_unique_id(media_msg) -> str:
+          # Cambiar message.message_id por message.id en stream.py
+          grep -q 'message.message_id' WebStreamer/bot/plugins/stream.py && \
+          sed 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py > WebStreamer/bot/plugins/stream.py.tmp && \
+          mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py || echo "No change needed for message_id 1"
+
+          grep -q 'log_msg.message_id' WebStreamer/bot/plugins/stream.py && \
+          sed 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py > WebStreamer/bot/plugins/stream.py.tmp && \
+          mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py || echo "No change needed for message_id 2"
+
+          # Sobrescribir get_unique_id para corregir error variable no definida
+          echo 'def get_unique_id(media_msg) -> str:
     for attr in (
         "audio",
         "document",
@@ -65,7 +72,7 @@ def get_unique_id(media_msg) -> str:
         except AttributeError:
             continue
     return "abcdef"
-EOF
+' > WebStreamer/utils/file_id.py
 
       - name: Instalar y configurar Ngrok
         run: |

@@ -36,18 +36,22 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parchear compatibilidad con Pyrogram 2.x
+      - name: Aplicar parches de compatibilidad Pyrogram 2.x
         run: |
           cd TG-FileStreamBot
 
-          # Reemplazo de 'session_name' por 'name'
+          # 1. session_name => name
           sed -i 's/session_name=/name=/g' WebStreamer/bot/__init__.py
 
-          # Corregir .message_id por .id
+          # 2. message.message_id => message.id
           sed -i 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py || true
 
-          # Arreglar función get_unique_id
+          # 3. parse_mode="html" => parse_mode=ParseMode.HTML
+          sed -i '1s/^/from pyrogram.enums import ParseMode\n/' WebStreamer/bot/plugins/stream.py
+          sed -i 's/parse_mode="html"/parse_mode=ParseMode.HTML/g' WebStreamer/bot/plugins/stream.py || true
+
+          # 4. Arreglar función get_unique_id
           echo 'def get_unique_id(msg):' > WebStreamer/utils/file_id.py
           echo '    attrd = getattr(msg, "file_unique_id", "abcdef")' >> WebStreamer/utils/file_id.py
           echo '    return attrd[:6]' >> WebStreamer/utils/file_id.py

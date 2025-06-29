@@ -34,6 +34,15 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Ejecutar el bot WebStreamer en background
+        run: |
+          cd TG-FileStreamBot
+          . venv/bin/activate
+          nohup python3 -m WebStreamer &
+
+      - name: Esperar 10 segundos para que el bot inicie
+        run: sleep 10
+
       - name: Instalar Ngrok
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
@@ -46,12 +55,3 @@ jobs:
       - name: Iniciar Ngrok HTTP con URL fija
         run: |
           nohup ngrok http --url=ready-unlikely-osprey.ngrok-free.app 8080 &
-
-      - name: Esperar 10 segundos para que Ngrok inicie
-        run: sleep 10
-
-      - name: Ejecutar el bot WebStreamer
-        run: |
-          cd TG-FileStreamBot
-          . venv/bin/activate
-          python3 -m WebStreamer

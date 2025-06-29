@@ -1,8 +1,8 @@
-name: Telegram FileStreamBot WebUI + Ngrok (Pyrogram 2.x Compatible)
+name: Telegram FileStreamBot WebUI + Ngrok
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
+    - cron: '0 */6 * * *' # Cada 6 horas
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       FQDN: ${{ secrets.FQDN }}
 
     steps:
-      - name: Checkout del repositorio
+      - name: Clonar el repositorio
         uses: actions/checkout@v2
 
       - name: Instalar dependencias básicas
@@ -35,33 +35,41 @@ jobs:
           . venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyrogram tgcrypto
 
-      - name: Parchear bot para Pyrogram 2.x y message_id fix
+      - name: Parchear bot/__init__.py para Pyrogram 2.x
         run: |
           cd TG-FileStreamBot/WebStreamer/bot
-          echo 'from pyrogram import Client' > __init__.py
-          echo 'from WebStreamer.vars import Var' >> __init__.py
-          echo '' >> __init__.py
-          echo 'StreamBot = Client(' >> __init__.py
-          echo '    name="WebStreamer",' >> __init__.py
-          echo '    api_id=Var.API_ID,' >> __init__.py
-          echo '    api_hash=Var.API_HASH,' >> __init__.py
-          echo '    bot_token=Var.BOT_TOKEN,' >> __init__.py
-          echo '    workers=Var.WORKERS,' >> __init__.py
-          echo '    sleep_threshold=Var.SLEEP_THRESHOLD' >> __init__.py
-          echo ')' >> __init__.py
+          cat <<EOF > __init__.py
+from pyrogram import Client
+from WebStreamer.vars import Var
 
-          # Corregir uso de message_id en Pyrogram 2.x
-          sed -i 's/log_msg\.message_id/log_msg.id/g' ../plugins/stream.py
+StreamBot = Client(
+    name="WebStreamer",
+    api_id=Var.API_ID,
+    api_hash=Var.API_HASH,
+    bot_token=Var.BOT_TOKEN,
+    workers=Var.WORKERS,
+    sleep_threshold=Var.SLEEP_THRESHOLD
+)
+EOF
+
+      - name: Corregir uso de message_id en Pyrogram 2.x
+        run: |
+          cd TG-FileStreamBot/WebStreamer
+          if [ -f bot/plugins/stream.py ]; then
+            sed -i 's/log_msg\.message_id/log_msg.id/g' bot/plugins/stream.py
+          elif [ -f plugins/stream.py ]; then
+            sed -i 's/log_msg\.message_id/log_msg.id/g' plugins/stream.py
+          else
+            echo "stream.py no encontrado, omitiendo parcheo."
+          fi
 
       - name: Instalar y configurar Ngrok
         run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-            | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-            | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt-get update && sudo apt-get install -y ngrok
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt-get update
+          sudo apt-get install -y ngrok
           ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
       - name: Iniciar Ngrok

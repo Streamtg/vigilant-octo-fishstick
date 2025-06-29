@@ -1,87 +1,69 @@
 name: Telegram FileStreamBot WebUI + Ngrok
 
-on:
-  schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
+on: schedule: - cron: '0 */6 * * *' # Ejecutar cada 6 horas workflow_dispatch:
 
-jobs:
-  run:
-    runs-on: ubuntu-latest
-    timeout-minutes: 360
+jobs: run: runs-on: ubuntu-latest timeout-minutes: 360
 
-    env:
-      API_ID: ${{ secrets.API_ID }}
-      API_HASH: ${{ secrets.API_HASH }}
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-      PORT: 8080
-      FQDN: ${{ secrets.FQDN }}
+env:
+  API_ID: ${{ secrets.API_ID }}
+  API_HASH: ${{ secrets.API_HASH }}
+  BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+  BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+  PORT: 8080
+  FQDN: ${{ secrets.FQDN }}
 
-    steps:
-      - name: Checkout del repositorio
-        uses: actions/checkout@v2
+steps:
+  - name: Checkout del repositorio
+    uses: actions/checkout@v2
 
-      - name: Instalar dependencias
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-venv curl git
+  - name: Instalar dependencias
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y python3-venv curl git
 
-      - name: Clonar TG-FileStreamBot (rama v2.1)
-        run: |
-          git clone --branch v2.1 https://github.com/EverythingSuckz/TG-FileStreamBot.git
-          cd TG-FileStreamBot
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+  - name: Clonar TG-FileStreamBot (rama v2.1)
+    run: |
+      git clone --branch v2.1 https://github.com/EverythingSuckz/TG-FileStreamBot.git
+      cd TG-FileStreamBot
+      python3 -m venv venv
+      . venv/bin/activate
+      pip install --upgrade pip
+      pip install -r requirements.txt
 
-      - name: Parchear __init__.py (session_name -> name)
-        run: |
-          echo "from pyrogram import Client" > TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo "from WebStreamer.vars import Var" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo "" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo "StreamBot = Client(" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo "    name='WebStreamer'," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo "    api_id=Var.API_ID," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo "    api_hash=Var.API_HASH," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo "    bot_token=Var.BOT_TOKEN," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo "    workers=Var.WORKERS," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo "    sleep_threshold=Var.SLEEP_THRESHOLD" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo ")" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+  - name: Parchear clients.py con compatibilidad Pyrogram 2.x
+    run: |
+      echo "from pyrogram import Client" > TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo "from WebStreamer.vars import Var" >> TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo "" >> TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo "StreamBot = Client(" >> TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo "    name='WebStreamer'," >> TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo "    api_id=Var.API_ID," >> TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo "    api_hash=Var.API_HASH," >> TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo "    bot_token=Var.BOT_TOKEN," >> TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo "    workers=Var.WORKERS," >> TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo "    sleep_threshold=Var.SLEEP_THRESHOLD" >> TG-FileStreamBot/WebStreamer/bot/clients.py
+      echo ")" >> TG-FileStreamBot/WebStreamer/bot/clients.py
 
-      - name: Parchear stream.py para Pyrogram 2.x
-        run: |
-          echo "from WebStreamer.vars import Var" > TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "from WebStreamer.utils.file_properties import get_file_ids" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "from pyrogram import filters" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "from pyrogram.types import Message" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "from WebStreamer.bot import StreamBot" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "@StreamBot.on_message(filters.document | filters.video | filters.audio)" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "async def media_receive_handler(_, message: Message):" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "    log_msg = await message.copy(chat_id=Var.BIN_CHANNEL)" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "    stream_link = f'{Var.URL}stream/{log_msg.id}'" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-          echo "    await message.reply_text(text=f'📥 Archivo listo: {stream_link}')" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+  - name: Parchear uso de .message_id (Pyrogram 2.x)
+    run: |
+      find TG-FileStreamBot/WebStreamer/bot/plugins -type f -name '*.py' -exec sed -i 's/\.message_id/\.id/g' {} +
 
-      - name: Parchear clients.py para evitar ImportError
-        run: |
-          echo "from pyrogram import Client" > TG-FileStreamBot/WebStreamer/bot/clients.py
-          echo "# StreamBot u otros objetos pueden definirse aquí si es necesario" >> TG-FileStreamBot/WebStreamer/bot/clients.py
+  - name: Instalar y configurar Ngrok
+    run: |
+      curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+      echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+        | sudo tee /etc/apt/sources.list.d/ngrok.list
+      sudo apt-get update && sudo apt-get install -y ngrok
+      ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Instalar y configurar Ngrok
-        run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt-get update && sudo apt-get install -y ngrok
-          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+  - name: Iniciar Ngrok
+    run: |
+      nohup ngrok http 8080 &
 
-      - name: Iniciar Ngrok
-        run: |
-          nohup ngrok http 8080 &
+  - name: Ejecutar el bot WebStreamer
+    run: |
+      cd TG-FileStreamBot
+      . venv/bin/activate
+      python3 -m WebStreamer
 
-      - name: Ejecutar el bot WebStreamer
-        run: |
-          cd TG-FileStreamBot
-          . venv/bin/activate
-          python3 -m WebStreamer

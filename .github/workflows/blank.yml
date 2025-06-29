@@ -16,7 +16,8 @@ jobs:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
       PORT: 8080
-      FQDN: ${{ secrets.FQDN }}
+      # NO definas FQDN estático aquí, lo definiremos dinámicamente tras ngrok
+      # FQDN: ${{ secrets.FQDN }}
 
     steps:
       - name: Checkout del repositorio
@@ -25,7 +26,7 @@ jobs:
       - name: Instalar dependencias básicas
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-venv curl
+          sudo apt-get install -y python3-venv curl jq
 
       - name: Clonar TG-FileStreamBot (rama webui)
         run: |
@@ -50,10 +51,6 @@ jobs:
           echo '    sleep_threshold=Var.SLEEP_THRESHOLD' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo ')' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
 
-      - name: Parchear error 'message_id' en plugins/stream.py
-        run: |
-          sed -i 's/log_msg.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
-
       - name: Instalar y configurar Ngrok
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
@@ -63,12 +60,23 @@ jobs:
           sudo apt-get update && sudo apt-get install -y ngrok
           ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Iniciar Ngrok
+      - name: Iniciar Ngrok y capturar URL pública
         run: |
-          nohup ngrok http 8080 &
+          nohup ngrok http 8080 > ngrok.log 2>&1 &
+          for i in {1..15}; do
+            sleep 2
+            NGROK_URL=$(curl --silent http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+            if [[ $NGROK_URL == http* ]]; then
+              echo "Ngrok listo en $NGROK_URL"
+              echo "FQDN=$NGROK_URL" >> $GITHUB_ENV
+              break
+            fi
+          done
 
       - name: Iniciar el bot WebStreamer
         run: |
           cd TG-FileStreamBot
           . venv/bin/activate
+          # Exportar la variable FQDN para que el bot la use
+          export FQDN=$FQDN
           python3 -m WebStreamer

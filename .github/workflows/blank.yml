@@ -16,7 +16,6 @@ jobs:
       BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
       PORT: 8080
       FQDN: ${{ secrets.FQDN }}
-      NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
       - name: Checkout del repositorio
@@ -36,7 +35,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Aplicar parches manuales con sed y sobrescribir file_id.py
+      - name: Aplicar parches manuales con sed y echo
         run: |
           cd TG-FileStreamBot
 
@@ -61,36 +60,36 @@ jobs:
             echo "No patch needed for log_msg.message_id"
           fi
 
-          cat > WebStreamer/utils/file_id.py << 'EOF'
-def get_unique_id(media_msg) -> str:
-    for attr in (
-        "audio",
-        "document",
-        "photo",
-        "sticker",
-        "animation",
-        "video",
-        "voice",
-        "video_note",
-    ):
-        try:
-            file_obj = getattr(media_msg, attr)
-            if file_obj and getattr(file_obj, "file_unique_id", None):
-                return file_obj.file_unique_id[:6]
-        except AttributeError:
-            continue
-    return "abcdef"
-EOF
+          # Sobrescribir file_id.py usando echo
+          echo 'def get_unique_id(media_msg) -> str:' > WebStreamer/utils/file_id.py
+          echo '    for attr in (' >> WebStreamer/utils/file_id.py
+          echo '        "audio",' >> WebStreamer/utils/file_id.py
+          echo '        "document",' >> WebStreamer/utils/file_id.py
+          echo '        "photo",' >> WebStreamer/utils/file_id.py
+          echo '        "sticker",' >> WebStreamer/utils/file_id.py
+          echo '        "animation",' >> WebStreamer/utils/file_id.py
+          echo '        "video",' >> WebStreamer/utils/file_id.py
+          echo '        "voice",' >> WebStreamer/utils/file_id.py
+          echo '        "video_note",' >> WebStreamer/utils/file_id.py
+          echo '    ):' >> WebStreamer/utils/file_id.py
+          echo '        try:' >> WebStreamer/utils/file_id.py
+          echo '            file_obj = getattr(media_msg, attr)' >> WebStreamer/utils/file_id.py
+          echo '            if file_obj and getattr(file_obj, "file_unique_id", None):' >> WebStreamer/utils/file_id.py
+          echo '                return file_obj.file_unique_id[:6]' >> WebStreamer/utils/file_id.py
+          echo '        except AttributeError:' >> WebStreamer/utils/file_id.py
+          echo '            continue' >> WebStreamer/utils/file_id.py
+          echo '    return "abcdef"' >> WebStreamer/utils/file_id.py
 
       - name: Instalar y configurar Ngrok
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt-get update && sudo apt-get install -y ngrok
-          ngrok config add-authtoken $NGROK_AUTH_TOKEN
+          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
       - name: Iniciar Ngrok
-        run: nohup ngrok http $PORT &
+        run: |
+          nohup ngrok http $PORT &
 
       - name: Ejecutar el bot WebStreamer
         run: |

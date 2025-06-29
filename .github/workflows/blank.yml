@@ -17,6 +17,7 @@ jobs:
       PORT: ${{ secrets.PORT }}
       FQDN: ${{ secrets.FQDN }}
       HAS_SSL: ${{ secrets.HAS_SSL }}
+      NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
       - name: Checkout del repositorio
@@ -27,23 +28,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
 
-      - name: Clonar TG-FileStreamBot
+      - name: Clonar TG-FileStreamBot y preparar entorno
         run: |
           git clone --branch Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
           cd TG-FileStreamBot
           python3 -m venv venv
-          . venv/bin/activate
+          source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Aplicar parches al bot
+        working-directory: TG-FileStreamBot
         run: |
-          cd TG-FileStreamBot
           sed -i 's/message.message_id/message.id/g' WebStreamer/plugins/stream.py
           sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/plugins/stream.py
 
-          cat << 'EOF' > WebStreamer/utils/file_id.py
-def get_unique_id(media_msg) -> str:
+          # Sobrescribir file_id.py para corregir error
+          echo 'def get_unique_id(media_msg) -> str:
     for attr in (
         "audio",
         "document",
@@ -60,16 +61,15 @@ def get_unique_id(media_msg) -> str:
                 return file_obj.file_unique_id[:6]
         except AttributeError:
             continue
-    return "abcdef"
-EOF
+    return "abcdef"' > WebStreamer/utils/file_id.py
 
-      - name: Iniciar el Bot
+      - name: Iniciar el Bot (en background)
+        working-directory: TG-FileStreamBot
         run: |
-          cd TG-FileStreamBot
-          . venv/bin/activate
+          source venv/bin/activate
           nohup python3 -m WebStreamer &
 
-      - name: Esperar 10 segundos
+      - name: Esperar 10 segundos antes de iniciar Ngrok
         run: sleep 10
 
       - name: Instalar y configurar Ngrok
@@ -77,7 +77,7 @@ EOF
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt-get update && sudo apt-get install -y ngrok
-          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+          ngrok config add-authtoken $NGROK_AUTH_TOKEN
           nohup ngrok http $PORT &
 
       - name: Mantener vivo por 6 horas

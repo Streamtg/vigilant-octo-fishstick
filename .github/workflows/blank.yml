@@ -17,6 +17,7 @@ jobs:
       BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
       PORT: 8080
       FQDN: ${{ secrets.FQDN }}
+      NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
       - name: Checkout del repositorio
@@ -32,14 +33,14 @@ jobs:
           git clone --branch webui https://github.com/EverythingSuckz/TG-FileStreamBot.git
           cd TG-FileStreamBot
           python3 -m venv venv
-          . venv/bin/activate
+          source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parchear WebStreamer para Pyrogram 2.x
+      - name: Parchear bot para Pyrogram 2.x
         run: |
-          # Reescribir bot/__init__.py eliminando session_name
-          cat <<EOF > TG-FileStreamBot/WebStreamer/bot/__init__.py
+          cd TG-FileStreamBot/WebStreamer/bot
+          cat <<EOF > __init__.py
 from pyrogram import Client
 from WebStreamer.vars import Var
 
@@ -53,22 +54,22 @@ StreamBot = Client(
 )
 EOF
 
-          # Corregir uso de log_msg.message_id a log_msg.id (Pyrogram 2.x)
-          sed -i 's/log_msg\.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          # Corregir uso de message_id obsoleto
+          sed -i 's/log_msg\.message_id/log_msg.id/g' ../plugins/stream.py
 
       - name: Instalar y configurar Ngrok
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt-get update && sudo apt-get install -y ngrok
-          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+          ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
 
       - name: Iniciar Ngrok
         run: |
-          nohup ngrok http 8080 &
+          nohup ngrok http $PORT &
 
       - name: Iniciar el bot WebStreamer
         run: |
           cd TG-FileStreamBot
-          . venv/bin/activate
+          source venv/bin/activate
           python3 -m WebStreamer

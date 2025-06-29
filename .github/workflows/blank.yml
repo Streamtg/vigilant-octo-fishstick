@@ -3,7 +3,7 @@ name: Telegram FileStreamBot WebUI + Ngrok
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
+    - cron: '0 */6 * * *'
 
 jobs:
   run:
@@ -38,39 +38,31 @@ jobs:
 
       - name: Parchear compatibilidad con Pyrogram 2
         run: |
-          echo "Parcheando uso de message_id..."
           sed -i 's/message\.message_id/message.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg\.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
 
-      - name: Parchear función get_unique_id para evitar error de attrd
+      - name: Corregir función get_unique_id
         run: |
-          cat << 'EOF' > TG-FileStreamBot/WebStreamer/utils/file_id.py
-from pyrogram.types import Message
-
-def get_unique_id(message: Message) -> str:
-    attrd = None
-
-    if message.media:
-        if message.photo:
-            attrd = message.photo.file_unique_id
-        elif message.video:
-            attrd = message.video.file_unique_id
-        elif message.document:
-            attrd = message.document.file_unique_id
-        elif message.audio:
-            attrd = message.audio.file_unique_id
-        elif message.voice:
-            attrd = message.voice.file_unique_id
-        elif message.video_note:
-            attrd = message.video_note.file_unique_id
-        elif message.sticker:
-            attrd = message.sticker.file_unique_id
-
-    if attrd:
-        return attrd[:6]
-    else:
-        return "000000"
-EOF
+          echo "from pyrogram.types import Message" > TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "def get_unique_id(message: Message) -> str:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    attrd = None" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    if message.media:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        if message.photo:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "            attrd = message.photo.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        elif message.video:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "            attrd = message.video.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        elif message.document:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "            attrd = message.document.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        elif message.audio:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "            attrd = message.audio.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        elif message.voice:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "            attrd = message.voice.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        elif message.video_note:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "            attrd = message.video_note.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        elif message.sticker:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "            attrd = message.sticker.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    return attrd[:6] if attrd else '000000'" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
 
       - name: Instalar y configurar Ngrok
         run: |

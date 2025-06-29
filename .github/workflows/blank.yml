@@ -2,7 +2,7 @@ name: Telegram FileStreamBot WebUI + Ngrok
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -19,8 +19,7 @@ jobs:
       FQDN: ${{ secrets.FQDN }}
 
     steps:
-      - name: Clonar el repositorio
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
       - name: Instalar dependencias
         run: |
@@ -39,16 +38,9 @@ jobs:
       - name: Parchear compatibilidad Pyrogram 2.x
         run: |
           cd TG-FileStreamBot
-          # Reemplazar session_name por name
           sed -i 's/session_name=/name=/g' WebStreamer/bot/__init__.py || true
-          # Reemplazar message_id por id
           sed -i 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py || true
-          # Crear archivo clients.py completo
-          echo 'from WebStreamer.bot import StreamBot' > WebStreamer/bot/clients.py
-          echo '' >> WebStreamer/bot/clients.py
-          echo 'multi_clients = []' >> WebStreamer/bot/clients.py
-          echo 'work_loads = {}' >> WebStreamer/bot/clients.py
 
       - name: Instalar y configurar Ngrok
         run: |

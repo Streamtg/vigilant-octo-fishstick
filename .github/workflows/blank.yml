@@ -3,7 +3,7 @@ name: Telegram FileStreamBot WebUI + Ngrok
 on:
   schedule:
     - cron: '0 */6 * * *' # Cada 6 horas
-  workflow_dispatch: # Ejecución manual
+  workflow_dispatch:
 
 jobs:
   run:
@@ -38,19 +38,17 @@ jobs:
 
       - name: Parchear bot/__init__.py para Pyrogram v1.4.x
         run: |
-          cat > TG-FileStreamBot/WebStreamer/bot/__init__.py <<EOF
-from pyrogram import Client
-from WebStreamer.vars import Var
-
-StreamBot = Client(
-    name="WebStreamer",
-    api_id=Var.API_ID,
-    api_hash=Var.API_HASH,
-    bot_token=Var.BOT_TOKEN,
-    workers=Var.WORKERS,
-    sleep_threshold=Var.SLEEP_THRESHOLD
-)
-EOF
+          echo 'from pyrogram import Client' > TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo 'from WebStreamer.vars import Var' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo '' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo 'StreamBot = Client(' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo '    name="WebStreamer",' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo '    api_id=Var.API_ID,' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo '    api_hash=Var.API_HASH,' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo '    bot_token=Var.BOT_TOKEN,' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo '    workers=Var.WORKERS,' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo '    sleep_threshold=Var.SLEEP_THRESHOLD' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo ')' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
 
       - name: Instalar y configurar Ngrok
         run: |

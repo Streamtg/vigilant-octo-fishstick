@@ -19,10 +19,10 @@ jobs:
       FQDN: ${{ secrets.FQDN }}
 
     steps:
-      - name: Clonar el repositorio
+      - name: Checkout del repositorio
         uses: actions/checkout@v2
 
-      - name: Instalar dependencias básicas
+      - name: Instalar dependencias
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv curl
@@ -39,29 +39,26 @@ jobs:
       - name: Parchear bot/__init__.py para Pyrogram 2.x
         run: |
           cd TG-FileStreamBot/WebStreamer/bot
-          cat <<EOF > __init__.py
-from pyrogram import Client
-from WebStreamer.vars import Var
+          echo "from pyrogram import Client" > __init__.py
+          echo "from WebStreamer.vars import Var" >> __init__.py
+          echo "" >> __init__.py
+          echo "StreamBot = Client(" >> __init__.py
+          echo "    name='WebStreamer'," >> __init__.py
+          echo "    api_id=Var.API_ID," >> __init__.py
+          echo "    api_hash=Var.API_HASH," >> __init__.py
+          echo "    bot_token=Var.BOT_TOKEN," >> __init__.py
+          echo "    workers=Var.WORKERS," >> __init__.py
+          echo "    sleep_threshold=Var.SLEEP_THRESHOLD" >> __init__.py
+          echo ")" >> __init__.py
 
-StreamBot = Client(
-    name="WebStreamer",
-    api_id=Var.API_ID,
-    api_hash=Var.API_HASH,
-    bot_token=Var.BOT_TOKEN,
-    workers=Var.WORKERS,
-    sleep_threshold=Var.SLEEP_THRESHOLD
-)
-EOF
-
-      - name: Corregir uso de message_id en Pyrogram 2.x
+      - name: Corregir uso de message_id para Pyrogram 2.x
         run: |
           cd TG-FileStreamBot/WebStreamer
-          if [ -f bot/plugins/stream.py ]; then
-            sed -i 's/log_msg\.message_id/log_msg.id/g' bot/plugins/stream.py
-          elif [ -f plugins/stream.py ]; then
-            sed -i 's/log_msg\.message_id/log_msg.id/g' plugins/stream.py
+          FILE="bot/plugins/stream.py"
+          if [ -f "$FILE" ]; then
+            sed -i 's/log_msg\.message_id/log_msg.id/g' $FILE
           else
-            echo "stream.py no encontrado, omitiendo parcheo."
+            echo "Archivo $FILE no encontrado. Saltando corrección."
           fi
 
       - name: Instalar y configurar Ngrok

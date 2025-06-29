@@ -36,7 +36,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parchear para Pyrogram 2.x (via echo)
+      - name: Parchear __init__.py (session_name -> name)
         run: |
           echo "from pyrogram import Client" > TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo "from WebStreamer.vars import Var" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
@@ -50,8 +50,24 @@ jobs:
           echo "    sleep_threshold=Var.SLEEP_THRESHOLD" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo ")" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
 
-          sed -i 's/message.message_id/message.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
-          sed -i 's/log_msg.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
+      - name: Parchear stream.py para Pyrogram 2.x
+        run: |
+          echo "from WebStreamer.vars import Var" > TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "from WebStreamer.utils.file_properties import get_file_ids" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "from pyrogram import filters" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "from pyrogram.types import Message" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "from WebStreamer.bot import StreamBot" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "@StreamBot.on_message(filters.document | filters.video | filters.audio)" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "async def media_receive_handler(_, message: Message):" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "    log_msg = await message.copy(chat_id=Var.BIN_CHANNEL)" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "    stream_link = f'{Var.URL}stream/{log_msg.id}'" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          echo "    await message.reply_text(text=f'📥 Archivo listo: {stream_link}')" >> TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+
+      - name: Parchear clients.py para evitar ImportError
+        run: |
+          echo "from pyrogram import Client" > TG-FileStreamBot/WebStreamer/bot/clients.py
+          echo "# StreamBot u otros objetos pueden definirse aquí si es necesario" >> TG-FileStreamBot/WebStreamer/bot/clients.py
 
       - name: Instalar y configurar Ngrok
         run: |

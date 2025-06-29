@@ -50,6 +50,10 @@ jobs:
           echo '    sleep_threshold=Var.SLEEP_THRESHOLD' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo ')' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
 
+      - name: Parchear error 'message_id' en plugins/stream.py
+        run: |
+          sed -i 's/log_msg.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+
       - name: Instalar y configurar Ngrok
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \

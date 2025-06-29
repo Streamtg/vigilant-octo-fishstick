@@ -2,7 +2,7 @@ name: Telegram FileStreamBot WebUI + Ngrok (Pyrogram 2.x)
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Cada 6 horas
+    - cron: '0 */6 * * *'  # Cada 6 horas
   workflow_dispatch:
 
 jobs:
@@ -37,25 +37,6 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parchear bot/__init__.py para Pyrogram 2.x y corregir imports en clients.py
-        run: |
-          cd TG-FileStreamBot/WebStreamer/bot
-          # Sobrescribir __init__.py
-          echo "from pyrogram import Client" > __init__.py
-          echo "from WebStreamer.vars import Var" >> __init__.py
-          echo "from .clients import StreamBot" >> __init__.py
-          echo "" >> __init__.py
-          echo "StreamBot = Client(" >> __init__.py
-          echo "    name='WebStreamer'," >> __init__.py
-          echo "    api_id=Var.API_ID," >> __init__.py
-          echo "    api_hash=Var.API_HASH," >> __init__.py
-          echo "    bot_token=Var.BOT_TOKEN," >> __init__.py
-          echo "    workers=Var.WORKERS," >> __init__.py
-          echo ")" >> __init__.py
-
-          # Corregir imports inválidos en clients.py
-          sed -i 's/from \. import multi_clients, work_loads, StreamBot/from . import StreamBot/' clients.py
-
       - name: Instalar y configurar Ngrok
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
@@ -67,7 +48,7 @@ jobs:
         run: |
           nohup ngrok http 8080 &
 
-      - name: Iniciar el bot WebStreamer
+      - name: Ejecutar el bot WebStreamer
         run: |
           cd TG-FileStreamBot
           . venv/bin/activate

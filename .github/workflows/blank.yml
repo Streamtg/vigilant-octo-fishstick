@@ -1,4 +1,4 @@
-name: Telegram FileStreamBot WebUI + Ngrok
+name: Run TG-FileStreamBot (Telethon-modified)
 
 on:
   workflow_dispatch:
@@ -18,67 +18,19 @@ jobs:
       FQDN: ${{ secrets.FQDN }}
 
     steps:
-      - name: Checkout del repositorio
-        uses: actions/checkout@v2
-
       - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-venv curl git
+          sudo apt-get install -y python3 python3-venv curl git
 
-      - name: Clonar TG-FileStreamBot y preparar entorno
+      - name: Clonar el repositorio Telethon-modified
         run: |
-          git clone --branch v2.1 https://github.com/EverythingSuckz/TG-FileStreamBot.git
+          git clone --branch Telethon-modified https://github.com/DeekshithSH/TG-FileStreamBot.git
           cd TG-FileStreamBot
           python3 -m venv venv
-          . venv/bin/activate
+          . ./venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Aplicar parches manuales con sed y echo
-        run: |
-          cd TG-FileStreamBot
-
-          if grep -q 'session_name' WebStreamer/bot/__init__.py; then
-            sed 's/session_name=/name=/g' WebStreamer/bot/__init__.py > WebStreamer/bot/__init__.py.tmp
-            mv WebStreamer/bot/__init__.py.tmp WebStreamer/bot/__init__.py
-          else
-            echo "No patch needed in __init__.py"
-          fi
-
-          if grep -q 'message.message_id' WebStreamer/bot/plugins/stream.py; then
-            sed 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py > WebStreamer/bot/plugins/stream.py.tmp
-            mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py
-          else
-            echo "No patch needed for message.message_id"
-          fi
-
-          if grep -q 'log_msg.message_id' WebStreamer/bot/plugins/stream.py; then
-            sed 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py > WebStreamer/bot/plugins/stream.py.tmp
-            mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py
-          else
-            echo "No patch needed for log_msg.message_id"
-          fi
-
-          # Sobrescribir file_id.py usando echo
-          echo 'def get_unique_id(media_msg) -> str:' > WebStreamer/utils/file_id.py
-          echo '    for attr in (' >> WebStreamer/utils/file_id.py
-          echo '        "audio",' >> WebStreamer/utils/file_id.py
-          echo '        "document",' >> WebStreamer/utils/file_id.py
-          echo '        "photo",' >> WebStreamer/utils/file_id.py
-          echo '        "sticker",' >> WebStreamer/utils/file_id.py
-          echo '        "animation",' >> WebStreamer/utils/file_id.py
-          echo '        "video",' >> WebStreamer/utils/file_id.py
-          echo '        "voice",' >> WebStreamer/utils/file_id.py
-          echo '        "video_note",' >> WebStreamer/utils/file_id.py
-          echo '    ):' >> WebStreamer/utils/file_id.py
-          echo '        try:' >> WebStreamer/utils/file_id.py
-          echo '            file_obj = getattr(media_msg, attr)' >> WebStreamer/utils/file_id.py
-          echo '            if file_obj and getattr(file_obj, "file_unique_id", None):' >> WebStreamer/utils/file_id.py
-          echo '                return file_obj.file_unique_id[:6]' >> WebStreamer/utils/file_id.py
-          echo '        except AttributeError:' >> WebStreamer/utils/file_id.py
-          echo '            continue' >> WebStreamer/utils/file_id.py
-          echo '    return "abcdef"' >> WebStreamer/utils/file_id.py
 
       - name: Instalar y configurar Ngrok
         run: |
@@ -86,13 +38,10 @@ jobs:
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt-get update && sudo apt-get install -y ngrok
           ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-
-      - name: Iniciar Ngrok
-        run: |
           nohup ngrok http $PORT &
 
-      - name: Ejecutar el bot WebStreamer
+      - name: Ejecutar el bot sin modificaciones
         run: |
           cd TG-FileStreamBot
-          . venv/bin/activate
+          . ./venv/bin/activate
           python3 -m WebStreamer

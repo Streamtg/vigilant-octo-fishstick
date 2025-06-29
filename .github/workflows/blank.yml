@@ -40,7 +40,6 @@ jobs:
         run: |
           cd TG-FileStreamBot
 
-          # Patch 1: Reemplazar session_name por name en bot/__init__.py
           if grep -q 'session_name' WebStreamer/bot/__init__.py; then
             sed 's/session_name=/name=/g' WebStreamer/bot/__init__.py > WebStreamer/bot/__init__.py.tmp
             mv WebStreamer/bot/__init__.py.tmp WebStreamer/bot/__init__.py
@@ -48,7 +47,6 @@ jobs:
             echo "No patch needed in __init__.py"
           fi
 
-          # Patch 2: Corregir message_id en plugins/stream.py
           if grep -q 'message.message_id' WebStreamer/bot/plugins/stream.py; then
             sed 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py > WebStreamer/bot/plugins/stream.py.tmp
             mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py
@@ -63,7 +61,6 @@ jobs:
             echo "No patch needed for log_msg.message_id"
           fi
 
-          # Patch 3: Sobrescribir file_id.py para corregir error de variable no definida
           cat > WebStreamer/utils/file_id.py << 'EOF'
 def get_unique_id(media_msg) -> str:
     for attr in (
@@ -90,7 +87,7 @@ EOF
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt-get update && sudo apt-get install -y ngrok
-          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+          ngrok config add-authtoken $NGROK_AUTH_TOKEN
 
       - name: Iniciar Ngrok
         run: nohup ngrok http $PORT &

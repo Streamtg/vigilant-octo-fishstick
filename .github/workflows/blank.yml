@@ -1,9 +1,9 @@
 name: Telegram FileStreamBot WebUI + Ngrok
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 */6 * * *'
-  workflow_dispatch:
 
 jobs:
   run:
@@ -20,14 +20,14 @@ jobs:
 
     steps:
       - name: Checkout del repositorio
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
 
-      - name: Clonar TG-FileStreamBot (rama v2.1) y preparar entorno
+      - name: Clonar TG-FileStreamBot y preparar entorno
         run: |
           git clone --branch v2.1 https://github.com/EverythingSuckz/TG-FileStreamBot.git
           cd TG-FileStreamBot
@@ -36,35 +36,64 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Aplicar parche para Pyrogram 2.x (sin sed, con echo)
+      - name: Aplicar parches manuales con sed y sobrescribir file_id.py
         run: |
-          # Reemplazar session_name por name en __init__.py
-          echo "from pyrogram import Client
+          cd TG-FileStreamBot
 
-StreamBot = Client(
-    'StreamBot',
-    api_id=int('${API_ID}'),
-    api_hash='${API_HASH}',
-    bot_token='${BOT_TOKEN}',
-    workers=100
-)
-" > TG-FileStreamBot/WebStreamer/bot/__init__.py
+          # Patch 1: Reemplazar session_name por name en bot/__init__.py
+          if grep -q 'session_name' WebStreamer/bot/__init__.py; then
+            sed 's/session_name=/name=/g' WebStreamer/bot/__init__.py > WebStreamer/bot/__init__.py.tmp
+            mv WebStreamer/bot/__init__.py.tmp WebStreamer/bot/__init__.py
+          else
+            echo "No patch needed in __init__.py"
+          fi
 
-          # Reemplazar message.message_id por message.id en plugins/stream.py
-          # Aquí hacemos una copia del archivo original y reemplazamos directamente
-          awk '{gsub(/message\.message_id/, "message.id"); gsub(/log_msg\.message_id/, "log_msg.id"); print}' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py > TG-FileStreamBot/WebStreamer/bot/plugins/stream_fixed.py
-          mv TG-FileStreamBot/WebStreamer/bot/plugins/stream_fixed.py TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
+          # Patch 2: Corregir message_id en plugins/stream.py
+          if grep -q 'message.message_id' WebStreamer/bot/plugins/stream.py; then
+            sed 's/message.message_id/message.id/g' WebStreamer/bot/plugins/stream.py > WebStreamer/bot/plugins/stream.py.tmp
+            mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py
+          else
+            echo "No patch needed for message.message_id"
+          fi
+
+          if grep -q 'log_msg.message_id' WebStreamer/bot/plugins/stream.py; then
+            sed 's/log_msg.message_id/log_msg.id/g' WebStreamer/bot/plugins/stream.py > WebStreamer/bot/plugins/stream.py.tmp
+            mv WebStreamer/bot/plugins/stream.py.tmp WebStreamer/bot/plugins/stream.py
+          else
+            echo "No patch needed for log_msg.message_id"
+          fi
+
+          # Patch 3: Sobrescribir file_id.py para corregir error de variable no definida
+          cat > WebStreamer/utils/file_id.py << 'EOF'
+def get_unique_id(media_msg) -> str:
+    for attr in (
+        "audio",
+        "document",
+        "photo",
+        "sticker",
+        "animation",
+        "video",
+        "voice",
+        "video_note",
+    ):
+        try:
+            file_obj = getattr(media_msg, attr)
+            if file_obj and getattr(file_obj, "file_unique_id", None):
+                return file_obj.file_unique_id[:6]
+        except AttributeError:
+            continue
+    return "abcdef"
+EOF
 
       - name: Instalar y configurar Ngrok
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt-get update && sudo apt-get install -y ngrok
-          ngrok config add-authtoken $NGROK_AUTH_TOKEN
+          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
       - name: Iniciar Ngrok
-        run: |
-          nohup ngrok http 8080 &
+        run: nohup ngrok http $PORT &
 
       - name: Ejecutar el bot WebStreamer
         run: |

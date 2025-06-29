@@ -22,12 +22,12 @@ jobs:
       - name: Checkout del repositorio
         uses: actions/checkout@v2
 
-      - name: Instalar dependencias del sistema
+      - name: Instalar dependencias
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
 
-      - name: Clonar TG-FileStreamBot (rama v2.1)
+      - name: Clonar TG-FileStreamBot (v2.1)
         run: |
           git clone --branch v2.1 https://github.com/EverythingSuckz/TG-FileStreamBot.git
           cd TG-FileStreamBot
@@ -36,32 +36,45 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parchear compatibilidad con Pyrogram 2
+      - name: Parchear Pyrogram 2.x (Client y ID)
+        run: |
+          echo "from pyrogram import Client" > TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo "from WebStreamer.vars import Var" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo "" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo "StreamBot = Client(" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo "    name='WebStreamer'," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo "    api_id=Var.API_ID," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo "    api_hash=Var.API_HASH," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo "    bot_token=Var.BOT_TOKEN," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo "    workers=Var.WORKERS," >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo "    sleep_threshold=Var.SLEEP_THRESHOLD" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+          echo ")" >> TG-FileStreamBot/WebStreamer/bot/__init__.py
+
+      - name: Corregir errores de ID en plugins
         run: |
           sed -i 's/message\.message_id/message.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg\.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
 
-      - name: Corregir función get_unique_id
+      - name: Corregir función get_unique_id (attrd no definido)
         run: |
           echo "from pyrogram.types import Message" > TG-FileStreamBot/WebStreamer/utils/file_id.py
           echo "" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
           echo "def get_unique_id(message: Message) -> str:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
           echo "    attrd = None" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "    if message.media:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "        if message.photo:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "            attrd = message.photo.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "        elif message.video:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "            attrd = message.video.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "        elif message.document:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "            attrd = message.document.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "        elif message.audio:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "            attrd = message.audio.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "        elif message.voice:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "            attrd = message.voice.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "        elif message.video_note:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "            attrd = message.video_note.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "        elif message.sticker:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
-          echo "            attrd = message.sticker.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    if message.photo:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        attrd = message.photo.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    elif message.video:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        attrd = message.video.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    elif message.document:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        attrd = message.document.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    elif message.audio:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        attrd = message.audio.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    elif message.voice:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        attrd = message.voice.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    elif message.video_note:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        attrd = message.video_note.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "    elif message.sticker:" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
+          echo "        attrd = message.sticker.file_unique_id" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
           echo "    return attrd[:6] if attrd else '000000'" >> TG-FileStreamBot/WebStreamer/utils/file_id.py
 
       - name: Instalar y configurar Ngrok

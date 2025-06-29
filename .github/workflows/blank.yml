@@ -3,12 +3,13 @@ name: Telegram FileStreamBot WebUI + Ngrok
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'  # cada 6 horas
 
 jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 360
+
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
@@ -23,24 +24,16 @@ jobs:
       - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-venv curl git
+          sudo apt-get install -y curl git
 
       - name: Clonar TG-FileStreamBot y preparar entorno
         run: |
           git clone --branch Telethon-modified https://github.com/DeekshithSH/TG-FileStreamBot.git
           cd TG-FileStreamBot
-          virtualenv -p /usr/bin/python3 venv
+          python3 -m venv venv
           . ./venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Aplicar parche para servidor escuche en 0.0.0.0
-        run: |
-          sed -i 's/web.run_app(app, host=.*/web.run_app(app, host="0.0.0.0", port=8080)/' TG-FileStreamBot/WebStreamer/server/__main__.py
-
-      - name: Aplicar parche para URL pública
-        run: |
-          sed -i 's|^URL=.*|URL="http://ready-unlikely-osprey.ngrok-free.app:8080/"|' TG-FileStreamBot/WebStreamer/vars.py || echo 'URL="http://ready-unlikely-osprey.ngrok-free.app:8080/"' >> TG-FileStreamBot/WebStreamer/vars.py
 
       - name: Instalar Ngrok
         run: |
@@ -50,18 +43,20 @@ jobs:
           sudo apt-get install -y ngrok
 
       - name: Configurar Ngrok
-        run: |
-          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Iniciar Bot WebStreamer
+      - name: Ejecutar bot y ngrok
         run: |
           cd TG-FileStreamBot
           . ./venv/bin/activate
+          # Ejecutar bot en background
           python3 -m WebStreamer &
 
-      - name: Esperar 10 segundos para que el bot inicie
-        run: sleep 10
+          # Esperar 10 segundos para que el bot inicie
+          sleep 10
 
-      - name: Iniciar Ngrok HTTP con dominio personalizado
-        run: |
-          nohup ngrok http --region=us --hostname=ready-unlikely-osprey.ngrok-free.app 8080 > ngrok.log 2>&1 & sleep 21600
+          # Ejecutar ngrok con URL fija y puerto
+          ngrok http --url=ready-unlikely-osprey.ngrok-free.app $PORT &
+
+          # Mantener vivo el proceso 6 horas
+          sleep 21600

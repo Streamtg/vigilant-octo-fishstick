@@ -1,12 +1,10 @@
-name: Telegram FileStreamBot WebUI + Ngrok (Pyrogram 2.x)
+name: Run TG-FileStreamBot v2.1 con parche Pyrogram v2
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
   workflow_dispatch:
 
 jobs:
-  run:
+  run_bot:
     runs-on: ubuntu-latest
     timeout-minutes: 360
 
@@ -17,18 +15,9 @@ jobs:
       BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
       PORT: 8080
       FQDN: ${{ secrets.FQDN }}
-      NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-      - name: Checkout del repositorio
-        uses: actions/checkout@v2
-
-      - name: Instalar dependencias básicas
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-venv curl
-
-      - name: Clonar TG-FileStreamBot v2.1
+      - name: Checkout repo TG-FileStreamBot v2.1
         run: |
           git clone --branch v2.1 https://github.com/EverythingSuckz/TG-FileStreamBot.git
           cd TG-FileStreamBot
@@ -37,18 +26,13 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Instalar y configurar Ngrok
+      - name: Aplicar parche para Pyrogram v2 en bot/__init__.py
         run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt-get update && sudo apt-get install -y ngrok
-          ngrok config add-authtoken $NGROK_AUTH_TOKEN
+          cd TG-FileStreamBot/WebStreamer/bot
+          # Reemplazar session_name por name en el Client
+          sed -i 's/session_name=/name=/' __init__.py || echo "No session_name encontrado, continuar"
 
-      - name: Iniciar Ngrok
-        run: |
-          nohup ngrok http 8080 &
-
-      - name: Ejecutar el bot WebStreamer
+      - name: Ejecutar el bot
         run: |
           cd TG-FileStreamBot
           . venv/bin/activate

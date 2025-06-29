@@ -2,7 +2,7 @@ name: Telegram FileStreamBot WebUI + Ngrok
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'  # Cada 6 horas
   workflow_dispatch:
 
 jobs:
@@ -38,7 +38,6 @@ jobs:
 
       - name: Parchear código para Pyrogram 2.x
         run: |
-          # Reemplazar session_name por name
           echo 'from pyrogram import Client' > TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo 'from WebStreamer.vars import Var' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo '' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
@@ -53,12 +52,10 @@ jobs:
           echo 'multi_clients = StreamBot' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo 'work_loads = None' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
 
-          # Reemplazar message_id por id
           sed -i 's/message.message_id/message.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
 
-          # Reemplazar función defectuosa en file_id.py
-          cat > TG-FileStreamBot/WebStreamer/utils/file_id.py << EOF
+          cat > TG-FileStreamBot/WebStreamer/utils/file_id.py <<EOF
 def get_unique_id(msg):
     attrd = getattr(msg, "file_unique_id", "abcdef")
     return attrd[:6]

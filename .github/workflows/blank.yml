@@ -49,8 +49,6 @@ jobs:
           echo '    workers=Var.WORKERS,' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo '    sleep_threshold=Var.SLEEP_THRESHOLD' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
           echo ')' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo 'multi_clients = StreamBot' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
-          echo 'work_loads = None' >> TG-FileStreamBot/WebStreamer/bot/__init__.py
 
           sed -i 's/message.message_id/message.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true
           sed -i 's/log_msg.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py || true

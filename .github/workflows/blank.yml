@@ -22,7 +22,7 @@ jobs:
       - name: Checkout del repositorio
         uses: actions/checkout@v2
 
-      - name: Instalar dependencias
+      - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv curl git
@@ -32,20 +32,17 @@ jobs:
           git clone --branch Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
           cd TG-FileStreamBot
           python3 -m venv venv
-          source venv/bin/activate
+          . venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Aplicar parches
+      - name: Aplicar parches al bot
         run: |
           cd TG-FileStreamBot
-
-          # Reemplazar .message_id por .id en stream.py
           sed -i 's/message.message_id/message.id/g' WebStreamer/plugins/stream.py
           sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/plugins/stream.py
 
-          # Reemplazar get_unique_id con versión segura
-          cat > WebStreamer/utils/file_id.py << 'EOF'
+          cat << 'EOF' > WebStreamer/utils/file_id.py
 def get_unique_id(media_msg) -> str:
     for attr in (
         "audio",
@@ -69,10 +66,10 @@ EOF
       - name: Iniciar el Bot
         run: |
           cd TG-FileStreamBot
-          source venv/bin/activate
+          . venv/bin/activate
           nohup python3 -m WebStreamer &
 
-      - name: Esperar 10 segundos antes de lanzar Ngrok
+      - name: Esperar 10 segundos
         run: sleep 10
 
       - name: Instalar y configurar Ngrok
@@ -81,7 +78,7 @@ EOF
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt-get update && sudo apt-get install -y ngrok
           ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-          nohup ngrok http 8080 &
+          nohup ngrok http $PORT &
 
-      - name: Mantener proceso vivo por 6 horas
+      - name: Mantener vivo por 6 horas
         run: sleep 21600

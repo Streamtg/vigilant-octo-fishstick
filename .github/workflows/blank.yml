@@ -1,9 +1,9 @@
-name: Telegram FileStreamBot WebUI + Ngrok (Pyrogram 2.x compatible)
+name: Telegram FileStreamBot WebUI + Ngrok (Pyrogram 2.x)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Ejecuta cada 6 horas
+    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
 
 jobs:
   bot:
@@ -38,7 +38,7 @@ jobs:
 
       - name: Parchear WebStreamer para Pyrogram 2.x
         run: |
-          # Parchear bot/__init__.py eliminando session_name
+          # Reescribir bot/__init__.py eliminando session_name
           cat <<EOF > TG-FileStreamBot/WebStreamer/bot/__init__.py
 from pyrogram import Client
 from WebStreamer.vars import Var
@@ -53,7 +53,7 @@ StreamBot = Client(
 )
 EOF
 
-          # Corregir uso de .message_id a .id (nuevo en Pyrogram 2.x)
+          # Corregir uso de log_msg.message_id a log_msg.id (Pyrogram 2.x)
           sed -i 's/log_msg\.message_id/log_msg.id/g' TG-FileStreamBot/WebStreamer/bot/plugins/stream.py
 
       - name: Instalar y configurar Ngrok

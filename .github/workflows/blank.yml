@@ -1,73 +1,69 @@
-name: TG-FileStream Deployment (Optimized)
+name: TG-FileStreamBot v2.0 Deployment
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'  # Auto-restart cada 6 horas
   workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Reinicio cada 6 horas
 
 jobs:
-  deploy:
+  run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 360  # 6 horas
+
     env:
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout this repo
+      uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          cache: 'pip'
+    - name: Install Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      - name: Clone TG-FileStream
-        run: |
-          git clone https://github.com/DeekshithSH/TG-FileStream.git
-          cd TG-FileStream
-          pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Clone TG-FileStreamBot (Old-v2.0)
+      run: |
+        git clone -b Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
+        cd TG-FileStreamBot
+        sudo apt update
+        sudo apt install -y python3-virtualenv
+        virtualenv -p /usr/bin/python3 venv
+        . ./venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Configure environment variables
-        run: |
-          echo "API_ID=${{ secrets.API_ID }}" >> $GITHUB_ENV
-          echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
-          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
-          echo "BIN_CHANNEL=${{ secrets.BIN_CHANNEL }}" >> $GITHUB_ENV
-          echo "LOG_CHANNEL=${{ secrets.LOG_CHANNEL }}" >> $GITHUB_ENV
-          echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
-          echo "HOST=${{ secrets.HOST }}" >> $GITHUB_ENV
-          echo "PUBLIC_URL=https://ready-unlikely-osprey.ngrok-free.app" >> $GITHUB_ENV
-          echo "::notice:: Variables de entorno configuradas correctamente"
+    - name: Set environment variables
+      run: |
+        echo "API_ID=${{ secrets.API_ID }}" >> $GITHUB_ENV
+        echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
+        echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
+        echo "OWNER_ID=${{ secrets.OWNER_ID }}" >> $GITHUB_ENV
+        echo "PORT=8080" >> $GITHUB_ENV
+        echo "FQDN=${{ secrets.FQDN }}" >> $GITHUB_ENV
+        echo "PUBLIC_URL=${{ secrets.FQDN }}" >> $GITHUB_ENV
+        echo "::notice:: Secrets cargados correctamente (FQDN, API_ID, BOT_TOKEN...)"
 
-      - name: Install Ngrok
-        run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-          | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-          | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install -y ngrok
+    - name: Install and Start Ngrok
+      run: |
+        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+        | sudo tee /etc/apt/sources.list.d/ngrok.list
+        sudo apt update && sudo apt install -y ngrok
+        ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
+        nohup ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app > ngrok.log 2>&1 &
 
-      - name: Configure Ngrok
-        run: |
-          ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
+    - name: Launch TG-FileStreamBot
+      run: |
+        cd TG-FileStreamBot
+        . ./venv/bin/activate
+        echo "::group::Iniciando WebStreamer"
+        echo "FQDN: $FQDN"
+        nohup python3 -m WebStreamer > bot.log 2>&1 &
+        echo "::endgroup:: Bot ejecutándose en segundo plano."
 
-      - name: Start Ngrok Tunnel
-        run: |
-          nohup ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app > ngrok.log 2>&1 &
-
-      - name: Launch FileStream Bot
-        run: |
-          cd TG-FileStream
-          echo "::group::Starting Bot"
-          echo "HOST: $HOST"
-          echo "PORT: $PORT"
-          echo "PUBLIC_URL: $PUBLIC_URL"
-          nohup python3 -m tgfs > bot.log 2>&1 &
-          echo "::endgroup::"
-
-      - name: Keep runner alive
-        run: |
-          echo "::notice:: Streaming en ejecución durante 6h..."
-          sleep 21500  # ~5h 58min
+    - name: Keep bot alive
+      run: |
+        echo "::notice:: Bot estará activo durante 6 horas."
+        sleep 21500

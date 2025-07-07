@@ -57,11 +57,4 @@ jobs:
       - name: Launch FileStream Bot (LAST STEP)
         run: |
           cd TG-FileStream
-          echo "Starting bot with config:"
-          echo "HOST: $HOST"
-          echo "PORT: $PORT"
-          echo "Ngrok URL: $NGROK_URL"
-          nohup python3 -m tgfs --host "$HOST" --port "$PORT" > bot.log 2>&1 &
-          
-          # Keep-alive
-          sleep 21500  # ~6 hours (adjust as needed)
+          nohup python3 -m tgfs

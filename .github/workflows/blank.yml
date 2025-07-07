@@ -3,7 +3,7 @@ name: TG-FileStreamBot v2.0 Deployment
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Reinicio cada 6 horas
+    - cron: '0 */6 * * *'
 
 jobs:
   run-bot:
@@ -30,19 +30,26 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate config.py dynamically
+      - name: Generate config.py dynamically with OWNER_ID validation
         run: |
           cd TG-FileStreamBot/WebStreamer
+
           echo 'class Var:' > config.py
           echo "    API_ID = int('${{ secrets.API_ID }}')" >> config.py
           echo "    API_HASH = '${{ secrets.API_HASH }}'" >> config.py
           echo "    BOT_TOKEN = '${{ secrets.BOT_TOKEN }}'" >> config.py
-          echo "    OWNER_ID = int('${{ secrets.OWNER_ID }}')" >> config.py
+
+          if [ -z "${{ secrets.OWNER_ID }}" ]; then
+            echo "    OWNER_ID = 777000" >> config.py
+          else
+            echo "    OWNER_ID = int('${{ secrets.OWNER_ID }}')" >> config.py
+          fi
+
           echo "    BIN_CHANNEL = int('${{ secrets.BIN_CHANNEL }}')" >> config.py
           echo "    PORT = 8080" >> config.py
           echo "    FQDN = '${{ secrets.FQDN }}'" >> config.py
           echo "    PUBLIC_URL = '${{ secrets.FQDN }}'" >> config.py
-          echo "    DATABASE_URL = '${{ secrets.DATABASE_URL || '' }}'" >> config.py
+          echo "    DATABASE_URL = '${{ secrets.DATABASE_URL }}'" >> config.py
           echo "    UPDATES_CHANNEL = ''" >> config.py
           echo "    BANNED_USERS = []" >> config.py
           echo "    PROTECT_CONTENT = False" >> config.py
@@ -67,8 +74,35 @@ jobs:
           cd TG-FileStreamBot
           . venv/bin/activate
           echo "::group::Iniciando WebStreamer en segundo plano"
-          nohup python3 -m WebStreamer
+          nohup python3 -m WebStreamer > bot.log 2>&1 &
           echo "::endgroup::"
-          sleep 10
+          sleep 5
           echo "::group::Iniciando Ngrok con dominio reservado"
           ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app
+
+      - name: Mostrar logs del bot si falla
+        if: always()
+        run: |
+          echo "::group::Contenido del archivo bot.log"
+          cat TG-FileStreamBot/bot.log || echo "No se pudo encontrar bot.log"
+          echo "::endgroup::"
+
+      - name: Enviar error a Telegram (LOG_CHANNEL)
+        if: failure()
+        run: |
+          echo "::group::Enviando logs a Telegram..."
+
+          LOG_FILE="TG-FileStreamBot/bot.log"
+
+          if [ -f "$LOG_FILE" ]; then
+            TRIMMED_LOG=$(tail -n 20 "$LOG_FILE" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          else
+            TRIMMED_LOG="No se encontró bot.log"
+          fi
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage" \
+            -d chat_id=${{ secrets.LOG_CHANNEL }} \
+            -d text="⚠️ *TG-FileStreamBot Error en GitHub Actions*\n\n\`\`\`\n${TRIMMED_LOG}\n\`\`\`" \
+            -d parse_mode=Markdown
+
+          echo "::endgroup::"

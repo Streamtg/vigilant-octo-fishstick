@@ -1,55 +1,72 @@
-name: Telegram FileStreamBot CI
+name: TG-FileStream Pro Deployment
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 */3 * * *'  # Auto-reinicio cada 3 horas (ajustable)
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     env:
+      # Secrets esenciales para el bot
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-      PORT: 8080
-      FQDN: ${{ secrets.FQDN }}
+      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}  # ✅ Secret añadido
+      HOST: ${{ secrets.HOST }}  # ✅ Secret añadido
+      
+      # Configuración de red
+      PORT: ${{ secrets.PORT || '8080' }}
+      PUBLIC_URL: ${{ secrets.PUBLIC_URL }}
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Setup python & dependencies
+      - name: Setup Python + Dependencies
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'  # Versión más reciente
+          cache: 'pip'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-venv curl git
-          git clone --branch Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
-          cd TG-FileStreamBot
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install --upgrade pip wheel
+          pip install -r TG-FileStream/requirements.txt
 
-      - name: Aplicar parches con sed
+      - name: Configure Environment
         run: |
-          cd TG-FileStreamBot
-          sed -i 's/message.message_id/message.id/g' WebStreamer/plugins/stream.py
-          sed -i 's/log_msg.message_id/log_msg.id/g' WebStreamer/plugins/stream.py
+          echo "HOST=$HOST" >> $GITHUB_ENV
+          echo "BIN_CHANNEL=$BIN_CHANNEL" >> $GITHUB_ENV
+          echo "PUBLIC_URL=$PUBLIC_URL" >> $GITHUB_ENV
 
-      - name: Instalar Ngrok
+      - name: Ngrok Tunnel Setup
         run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          sudo apt update
+          sudo apt install -y jq unzip
+          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt-get update && sudo apt-get install -y ngrok
+          sudo apt install -y ngrok
+          ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
 
-      - name: Configurar Ngrok
-        run: ngrok config add-authtoken $NGROK_AUTH_TOKEN
-
-      - name: Ejecutar Bot y Ngrok
+      - name: Launch Application
         run: |
-          cd TG-FileStreamBot
-          . venv/bin/activate
-          python3 -m WebStreamer &
-          sleep 10
-          ngrok http 8080 &
-          sleep 21600
+          cd TG-FileStream
+          nohup python3 -m tgfs --host "$HOST" --port "$PORT" &  # ✅ Usa los secrets
+          sleep 20
+          
+          # Ngrok con verificación de URL
+          nohup ngrok http "$PORT" --log=stdout > ngrok.log &
+          sleep 15
+          NGROK_URL=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+          echo "::notice:: Ngrok Public URL: $NGROK_URL"
+          echo "::notice:: Configured HOST: $HOST"
+          echo "::notice:: Bin Channel: $BIN_CHANNEL"
+
+      - name: Monitoring
+        run: |
+          echo "✅ Bot activo con estas configuraciones:"
+          echo "HOST: $HOST"
+          echo "BIN_CHANNEL: $BIN_CHANNEL"
+          echo "PUBLIC_URL: $PUBLIC_URL"
+          sleep 7200  # 2 horas de ejecución

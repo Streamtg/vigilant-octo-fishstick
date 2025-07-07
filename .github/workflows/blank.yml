@@ -3,14 +3,13 @@ name: TG-FileStream Python Deployment
 on:
   schedule:
     - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
-  workflow_dispatch:  # Permitir ejecución manual
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 horas máximo
+    timeout-minutes: 360
     env:
-      # Secrets esenciales
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -27,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'  # Versión específica para compatibilidad
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
@@ -36,19 +35,16 @@ jobs:
           cd TG-FileStream
           pip install -r requirements.txt
 
-      - name: Configure environment
-        run: |
-          echo "HOST=$HOST" >> $GITHUB_ENV
-          echo "PORT=$PORT" >> $GITHUB_ENV
-          echo "PUBLIC_URL=$PUBLIC_URL" >> $GITHUB_ENV
-
-      - name: Install Ngrok
+      - name: Install Ngrok (fixed method)
         run: |
           sudo apt update
-          sudo apt install -y jq
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt install -y ngrok
+          sudo apt install -y jq wget unzip
+          # Descargar Ngrok directamente
+          wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip
+          unzip ngrok-v3-stable-linux-amd64.zip
+          sudo mv ngrok /usr/local/bin/
+          rm ngrok-v3-stable-linux-amd64.zip
+          ngrok --version
 
       - name: Authenticate Ngrok
         run: ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
@@ -57,15 +53,15 @@ jobs:
         run: |
           cd TG-FileStream
           nohup python3 -m tgfs --host "$HOST" --port "$PORT" > bot.log 2>&1 &
-          sleep 15  # Esperar inicialización
+          sleep 15
 
       - name: Start Ngrok Tunnel
         run: |
           nohup ngrok http "$PORT" --log=stdout > ngrok.log &
-          sleep 10  # Esperar conexión Ngrok
+          sleep 10
           NGROK_URL=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
           echo "::notice:: Ngrok Public URL: $NGROK_URL"
-          echo "::set-output name=ngrok_url::$NGROK_URL"
+          echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
 
       - name: Verify deployment
         run: |
@@ -73,5 +69,5 @@ jobs:
           echo "HOST: $HOST"
           echo "PORT: $PORT"
           echo "LOG_CHANNEL: $LOG_CHANNEL"
-          echo "Ngrok URL: $(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')"
-          sleep 18000  # 5 horas de ejecución (ajustable)
+          echo "Ngrok URL: $NGROK_URL"
+          sleep 18000  # 5 horas de ejecución

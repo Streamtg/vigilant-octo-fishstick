@@ -101,7 +101,7 @@ jobs:
 
           echo "::endgroup::"
 
-      - name: Clean up bot.log
+ name: Clean up bot.log
         if: always()
         run: |
           echo "::group::Cleaning up bot.log"

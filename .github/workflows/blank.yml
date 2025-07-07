@@ -3,20 +3,18 @@ name: TG-FileStream Pro Deployment
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */3 * * *'  # Auto-reinicio cada 3 horas (ajustable)
+    - cron: '0 */3 * * *'  # Auto-reinicio cada 3 horas
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # Secrets esenciales para el bot
+      # Secrets esenciales
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}  # ✅ Secret añadido
-      HOST: ${{ secrets.HOST }}  # ✅ Secret añadido
-      
-      # Configuración de red
+      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+      HOST: ${{ secrets.HOST }}
       PORT: ${{ secrets.PORT || '8080' }}
       PUBLIC_URL: ${{ secrets.PUBLIC_URL }}
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
@@ -25,48 +23,52 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python + Dependencies
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # Versión más reciente
-          cache: 'pip'
+          python-version: '3.11'
+
+      - name: Install Dependencies
         run: |
           pip install --upgrade pip wheel
-          pip install -r TG-FileStream/requirements.txt
+          git clone https://github.com/DeekshithSH/TG-FileStream.git
+          cd TG-FileStream
+          pip install -r requirements.txt
 
       - name: Configure Environment
         run: |
           echo "HOST=$HOST" >> $GITHUB_ENV
           echo "BIN_CHANNEL=$BIN_CHANNEL" >> $GITHUB_ENV
-          echo "PUBLIC_URL=$PUBLIC_URL" >> $GITHUB_ENV
+          echo "NGROK_TOKEN=$NGROK_AUTH_TOKEN" >> $GITHUB_ENV
 
-      - name: Ngrok Tunnel Setup
+      - name: Setup Ngrok
         run: |
           sudo apt update
           sudo apt install -y jq unzip
           curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sousecretsst.d/ngrok.list
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt install -y ngrok
           ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
 
-      - name: Launch Application
+      - name: Launch Bot
         run: |
           cd TG-FileStream
-          nohup python3 -m tgfs --host "$HOST" --port "$PORT" &  # ✅ Usa los secrets
+          nohup python3 -m tgfs --host "$HOST" --port "$PORT" > bot.log 2>&1 &
           sleep 20
-          
-          # Ngrok con verificación de URL
+
+      - name: Start Ngrok Tunnel
+        run: |
           nohup ngrok http "$PORT" --log=stdout > ngrok.log &
           sleep 15
-          NGROK_URL=$(curl -s locasecrets040/api/tunnels | jq -r '.tunnels[0].public_url')
+          NGROK_URL=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
           echo "::notice:: Ngrok Public URL: $NGROK_URL"
-          echo "::notice:: Configured HOST: $HOST"
-          echo "::notice:: Bin Channel: $BIN_CHANNEL"
+          echo "::set-output name=ngrok_url::$NGROK_URL"
 
-      - name: Monitoring
+      - name: Verify Deployment
         run: |
-          echo "✅ Bot activo con estas configuraciones:"
+          echo "✅ Bot configurado con:"
           echo "HOST: $HOST"
           echo "BIN_CHANNEL: $BIN_CHANNEL"
-          echo "PUBLIC_URL: $PUBLIC_URL"
+          echo "PORT: $PORT"
+          echo "Ngrok URL: $(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')"
           sleep 7200  # 2 horas de ejecución

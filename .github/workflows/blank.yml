@@ -67,8 +67,8 @@ jobs:
           cd TG-FileStreamBot
           . venv/bin/activate
           echo "::group::Iniciando WebStreamer en segundo plano"
-          nohup python3 -m WebStreamer > bot.log 2>&1 &
+          nohup python3 -m WebStreamer
           echo "::endgroup::"
-          sleep 5
+          sleep 10
           echo "::group::Iniciando Ngrok con dominio reservado"
           ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app

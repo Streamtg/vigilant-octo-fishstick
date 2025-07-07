@@ -1,4 +1,4 @@
-name: TG-FileStream Deployment (Ngrok First)
+name: TG-FileStream Deployment (Fixed)
 
 on:
   schedule:
@@ -8,11 +8,12 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 hour max
+    timeout-minutes: 360
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}  # ✅ Añadido aquí
       LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
       PORT: ${{ secrets.PORT || '8080' }}
       HOST: ${{ secrets.HOST }}
@@ -27,7 +28,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          cache: 'pip'
 
       - name: Install dependencies
         run: |
@@ -36,7 +36,14 @@ jobs:
           cd TG-FileStream
           pip install -r requirements.txt
 
-      - name: Install Ngrok (direct download)
+      - name: Configure environment
+        run: |
+          echo "BIN_CHANNEL=$BIN_CHANNEL" >> $GITHUB_ENV  # ✅ Pasar a entorno
+          echo "HOST=$HOST" >> $GITHUB_ENV
+          echo "PORT=$PORT" >> $GITHUB_ENV
+          echo "PUBLIC_URL=$PUBLIC_URL" >> $GITHUB_ENV
+
+      - name: Install Ngrok
         run: |
           sudo apt update
           sudo apt install -y jq wget unzip
@@ -45,16 +52,21 @@ jobs:
           sudo mv ngrok /usr/local/bin/
           ngrok --version
 
-      - name: Configure Ngrok tunnel
+      - name: Start Ngrok tunnel
         run: |
           ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
           nohup ngrok http "$PORT" --log=stdout > ngrok.log &
-          sleep 10  # Wait for Ngrok to start
+          sleep 10
           NGROK_URL=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
-          echo "::notice:: Ngrok Public URL: $NGROK_URL"
+          echo "::notice:: Ngrok URL: $NGROK_URL"
           echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
 
-      - name: Launch FileStream Bot (LAST STEP)
+      - name: Launch FileStream Bot
         run: |
           cd TG-FileStream
-          nohup python3 -m tgfs
+          echo "Starting bot with configuration:"
+          echo "BIN_CHANNEL: $BIN_CHANNEL"
+          echo "HOST: $HOST"
+          echo "PORT: $PORT"
+          nohup python3 -m tgfs > bot.log 2>&1 &
+          sleep 21500  # ~6 hours

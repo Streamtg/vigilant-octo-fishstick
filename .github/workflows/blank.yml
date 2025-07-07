@@ -62,7 +62,7 @@ jobs:
         . ./venv/bin/activate
 
         echo "::group::Iniciando WebStreamer en segundo plano"
-        exec python3 -m WebStreamer > bot.log 2>&1 &
+        exec python3 -m WebStreamer &
         echo "::endgroup:: Bot lanzado correctamente"
 
         # Esperar unos segundos para asegurar que el bot inicie

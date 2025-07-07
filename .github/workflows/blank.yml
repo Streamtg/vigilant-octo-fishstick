@@ -3,7 +3,7 @@ name: TG-FileStreamBot v2.0 Deployment
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Reinicio cada 6 horas
+    - cron: '0 */6 * * *'  # Reinicio automático cada 6 horas
 
 jobs:
   run-bot:
@@ -39,10 +39,11 @@ jobs:
         echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
         echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
         echo "OWNER_ID=${{ secrets.OWNER_ID }}" >> $GITHUB_ENV
+        echo "BIN_CHANNEL=${{ secrets.BIN_CHANNEL }}" >> $GITHUB_ENV
         echo "PORT=8080" >> $GITHUB_ENV
         echo "FQDN=${{ secrets.FQDN }}" >> $GITHUB_ENV
         echo "PUBLIC_URL=${{ secrets.FQDN }}" >> $GITHUB_ENV
-        echo "::notice:: Secrets cargados correctamente (FQDN, API_ID, BOT_TOKEN...)"
+        echo "::notice:: Variables de entorno cargadas: API_ID, BIN_CHANNEL, etc."
 
     - name: Install Ngrok
       run: |
@@ -62,10 +63,10 @@ jobs:
         . ./venv/bin/activate
 
         echo "::group::Iniciando WebStreamer en segundo plano"
-        exec python3 -m WebStreamer &
+        nohup python3 -m WebStreamer > bot.log 2>&1 &
         echo "::endgroup:: Bot lanzado correctamente"
 
-        # Esperar unos segundos para asegurar que el bot inicie
+        # Espera breve para asegurar que el bot levante el servidor
         sleep 5
 
         echo "::group::Iniciando Ngrok con dominio reservado"

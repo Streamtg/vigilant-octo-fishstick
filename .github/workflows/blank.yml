@@ -30,7 +30,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate config.py dynamically with OWNER_ID validation
+      - name: Generate config.py with embedded OWNER_ID
         run: |
           cd TG-FileStreamBot/WebStreamer
 
@@ -38,13 +38,7 @@ jobs:
           echo "    API_ID = int('${{ secrets.API_ID }}')" >> config.py
           echo "    API_HASH = '${{ secrets.API_HASH }}'" >> config.py
           echo "    BOT_TOKEN = '${{ secrets.BOT_TOKEN }}'" >> config.py
-
-          if [ -z "${{ secrets.OWNER_ID }}" ]; then
-            echo "    OWNER_ID = 777000" >> config.py
-          else
-            echo "    OWNER_ID = int('${{ secrets.OWNER_ID }}')" >> config.py
-          fi
-
+          echo "    OWNER_ID = 834554042" >> config.py
           echo "    BIN_CHANNEL = int('${{ secrets.BIN_CHANNEL }}')" >> config.py
           echo "    PORT = 8080" >> config.py
           echo "    FQDN = '${{ secrets.FQDN }}'" >> config.py
@@ -74,7 +68,7 @@ jobs:
           cd TG-FileStreamBot
           . venv/bin/activate
           echo "::group::Iniciando WebStreamer en segundo plano"
-          nohup python3 -m WebStreamer > bot.log 2>&1 &
+          nohup python3 -m WebStreamer
           echo "::endgroup::"
           sleep 5
           echo "::group::Iniciando Ngrok con dominio reservado"
@@ -105,4 +99,11 @@ jobs:
             -d text="⚠️ *TG-FileStreamBot Error en GitHub Actions*\n\n\`\`\`\n${TRIMMED_LOG}\n\`\`\`" \
             -d parse_mode=Markdown
 
+          echo "::endgroup::"
+
+      - name: Clean up bot.log
+        if: always()
+        run: |
+          echo "::group::Cleaning up bot.log"
+          rm -f TG-FileStreamBot/bot.log || echo "Nothing to delete"
           echo "::endgroup::"

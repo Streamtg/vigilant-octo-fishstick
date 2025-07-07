@@ -1,24 +1,17 @@
-name: TG-FileStream Deployment (Fixed)
+name: TG-FileStream Deployment (Optimized)
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Auto-restart every 6 hours
+    - cron: '0 */6 * * *'  # Auto-restart cada 6 horas
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 360  # 6 horas máximo
     env:
-      API_ID: ${{ secrets.API_ID }}
-      API_HASH: ${{ secrets.API_HASH }}
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}  # ✅ Añadido aquí
-      LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
-      PORT: ${{ secrets.PORT || '8080' }}
-      HOST: ${{ secrets.HOST }}
+      # Solo secrets sensibles aquí
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-      PUBLIC_URL: ${{ secrets.PUBLIC_URL }}
 
     steps:
       - name: Checkout repository
@@ -28,45 +21,59 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+          cache: 'pip'
 
-      - name: Install dependencies
+      - name: Clone TG-FileStream
         run: |
-          pip install --upgrade pip
           git clone https://github.com/DeekshithSH/TG-FileStream.git
           cd TG-FileStream
+          pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Configure environment
+      - name: Configure all environment variables
         run: |
-          echo "BIN_CHANNEL=$BIN_CHANNEL" >> $GITHUB_ENV  # ✅ Pasar a entorno
-          echo "HOST=$HOST" >> $GITHUB_ENV
-          echo "PORT=$PORT" >> $GITHUB_ENV
-          echo "PUBLIC_URL=$PUBLIC_URL" >> $GITHUB_ENV
+          echo "API_ID=${{ secrets.API_ID }}" >> $GITHUB_ENV
+          echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
+          echo "BIN_CHANNEL=${{ secrets.BIN_CHANNEL }}" >> $GITHUB_ENV
+          echo "LOG_CHANNEL=${{ secrets.LOG_CHANNEL }}" >> $GITHUB_ENV
+          echo "PORT=${{ secrets.PORT || '8080' }}" >> $GITHUB_ENV
+          echo "HOST=${{ secrets.HOST }}" >> $GITHUB_ENV
+          echo "PUBLIC_URL=${{ secrets.PUBLIC_URL }}" >> $GITHUB_ENV
+          
+          # Verificación (los valores no se mostrarán en logs por seguridad)
+          echo "::notice:: Todas las variables de entorno fueron configuradas correctamente"
+          echo "Variables configuradas: API_ID, API_HASH, BOT_TOKEN, BIN_CHANNEL, LOG_CHANNEL, PORT, HOST, PUBLIC_URL"
 
-      - name: Install Ngrok
+      - name: Install and configure Ngrok
         run: |
           sudo apt update
           sudo apt install -y jq wget unzip
           wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip
           unzip ngrok-v3-stable-linux-amd64.zip
           sudo mv ngrok /usr/local/bin/
-          ngrok --version
+          ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
 
       - name: Start Ngrok tunnel
         run: |
-          ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
           nohup ngrok http "$PORT" --log=stdout > ngrok.log &
           sleep 10
           NGROK_URL=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
-          echo "::notice:: Ngrok URL: $NGROK_URL"
+          echo "::notice:: Ngrok Public URL: $NGROK_URL"
           echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
 
       - name: Launch FileStream Bot
         run: |
           cd TG-FileStream
-          echo "Starting bot with configuration:"
-          echo "BIN_CHANNEL: $BIN_CHANNEL"
+          echo "::group::Starting Bot with Configuration"
           echo "HOST: $HOST"
           echo "PORT: $PORT"
+          echo "BIN_CHANNEL: [PROTECTED]"
+          echo "LOG_CHANNEL: [PROTECTED]"
+          echo "Ngrok URL: $NGROK_URL"
+          echo "::endgroup::"
+          
           nohup python3 -m tgfs > bot.log 2>&1 &
-          sleep 21500  # ~6 hours
+          
+          # Mantener el contenedor activo
+          sleep 21500  # ~6 horas

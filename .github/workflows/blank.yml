@@ -14,84 +14,84 @@ jobs:
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-    - name: Checkout this repo
-      uses: actions/checkout@v4
+      - name: Checkout this repo
+        uses: actions/checkout@v4
 
-    - name: Install Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Clone TG-FileStreamBot (Old-v2.0)
-      run: |
-        git clone -b Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
-        cd TG-FileStreamBot
-        sudo apt update
-        sudo apt install -y python3-virtualenv
-        virtualenv -p /usr/bin/python3 venv
-        . ./venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Clone TG-FileStreamBot (Old-v2.0)
+        run: |
+          git clone -b Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
+          cd TG-FileStreamBot
+          sudo apt update
+          sudo apt install -y python3-virtualenv
+          virtualenv -p /usr/bin/python3 venv
+          . ./venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Set environment variables
-      run: |
-        echo "API_ID=${{ secrets.API_ID }}" >> $GITHUB_ENV
-        echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
-        echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
-        echo "OWNER_ID=${{ secrets.OWNER_ID }}" >> $GITHUB_ENV
-        echo "BIN_CHANNEL=${{ secrets.BIN_CHANNEL }}" >> $GITHUB_ENV
-        echo "PORT=8080" >> $GITHUB_ENV
-        echo "FQDN=${{ secrets.FQDN }}" >> $GITHUB_ENV
-        echo "PUBLIC_URL=${{ secrets.FQDN }}" >> $GITHUB_ENV
-        echo "DATABASE_URL=${{ secrets.DATABASE_URL || '' }}" >> $GITHUB_ENV
+      - name: Set environment variables
+        run: |
+          echo "API_ID=${{ secrets.API_ID }}" >> $GITHUB_ENV
+          echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
+          echo "OWNER_ID=${{ secrets.OWNER_ID }}" >> $GITHUB_ENV
+          echo "BIN_CHANNEL=${{ secrets.BIN_CHANNEL }}" >> $GITHUB_ENV
+          echo "PORT=8080" >> $GITHUB_ENV
+          echo "FQDN=${{ secrets.FQDN }}" >> $GITHUB_ENV
+          echo "PUBLIC_URL=${{ secrets.FQDN }}" >> $GITHUB_ENV
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV || true
 
-    - name: Generate config.py dynamically
-      run: |
-        cd TG-FileStreamBot/WebStreamer
-        cat << EOF > config.py
+      - name: Generate config.py dynamically
+        run: |
+          cd TG-FileStreamBot/WebStreamer
+          cat << 'EOF' > config.py
 class Var:
     API_ID = int("${{ secrets.API_ID }}")
     API_HASH = "${{ secrets.API_HASH }}"
     BOT_TOKEN = "${{ secrets.BOT_TOKEN }}"
     OWNER_ID = int("${{ secrets.OWNER_ID }}")
     BIN_CHANNEL = int("${{ secrets.BIN_CHANNEL }}")
-    PORT = int("${{ secrets.PORT || 8080 }}")
+    PORT = 8080
     FQDN = "${{ secrets.FQDN }}"
     PUBLIC_URL = "${{ secrets.FQDN }}"
-    DATABASE_URL = "${{ secrets.DATABASE_URL || '' }}"
+    DATABASE_URL = "${{ secrets.DATABASE_URL }}"
     UPDATES_CHANNEL = ""
     BANNED_USERS = []
     PROTECT_CONTENT = False
     CUSTOM_CAPTION = None
 EOF
 
-    - name: Overwrite vars.py to load from config.py
-      run: |
-        cd TG-FileStreamBot/WebStreamer
-        echo 'from .config import Var' > vars.py
+      - name: Overwrite vars.py to load from config.py
+        run: |
+          cd TG-FileStreamBot/WebStreamer
+          echo 'from .config import Var' > vars.py
 
-    - name: Install Ngrok
-      run: |
-        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-        | sudo tee /etc/apt/sources.list.d/ngrok.list
-        sudo apt update && sudo apt install -y ngrok
+      - name: Install Ngrok
+        run: |
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+          | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+          | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update && sudo apt install -y ngrok
 
-    - name: Configure Ngrok
-      run: |
-        ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
+      - name: Configure Ngrok
+        run: |
+          ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
 
-    - name: Start Bot first, then Ngrok
-      run: |
-        cd TG-FileStreamBot
-        . ./venv/bin/activate
+      - name: Start Bot first, then Ngrok
+        run: |
+          cd TG-FileStreamBot
+          . ./venv/bin/activate
 
-        echo "::group::Iniciando WebStreamer en segundo plano"
-        nohup python3 -m WebStreamer > bot.log 2>&1 &
-        echo "::endgroup:: Bot lanzado correctamente"
+          echo "::group::Iniciando WebStreamer en segundo plano"
+          nohup python3 -m WebStreamer > bot.log 2>&1 &
+          echo "::endgroup:: Bot lanzado correctamente"
 
-        sleep 5
+          sleep 5
 
-        echo "::group::Iniciando Ngrok con dominio reservado"
-        exec ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app
+          echo "::group::Iniciando Ngrok con dominio reservado"
+          exec ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app

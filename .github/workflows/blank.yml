@@ -8,9 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 horas máximo
+    timeout-minutes: 360
     env:
-      # Solo secrets sensibles aquí
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
@@ -30,48 +29,45 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Configure all environment variables
+      - name: Configure environment variables
         run: |
           echo "API_ID=${{ secrets.API_ID }}" >> $GITHUB_ENV
           echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
           echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
           echo "BIN_CHANNEL=${{ secrets.BIN_CHANNEL }}" >> $GITHUB_ENV
           echo "LOG_CHANNEL=${{ secrets.LOG_CHANNEL }}" >> $GITHUB_ENV
-          echo "PORT=${{ secrets.PORT || '8080' }}" >> $GITHUB_ENV
+          echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
           echo "HOST=${{ secrets.HOST }}" >> $GITHUB_ENV
-          echo "PUBLIC_URL=${{ secrets.PUBLIC_URL }}" >> $GITHUB_ENV
-          
-          # Verificación (los valores no se mostrarán en logs por seguridad)
-          echo "::notice:: Todas las variables de entorno fueron configuradas correctamente"
-          echo "Variables configuradas: API_ID, API_HASH, BOT_TOKEN, BIN_CHANNEL, LOG_CHANNEL, PORT, HOST, PUBLIC_URL"
+          echo "PUBLIC_URL=https://ready-unlikely-osprey.ngrok-free.app" >> $GITHUB_ENV
+          echo "::notice:: Variables de entorno configuradas correctamente"
+
+      - name: Install Ngrok
+        run: |
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+          | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+          | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update && sudo apt install -y ngrok
+
+      - name: Configure Ngrok
+        run: |
+          ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
+
+      - name: Start Ngrok Tunnel
+        run: |
+          nohup ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app > ngrok.log 2>&1 &
+
       - name: Launch FileStream Bot
         run: |
           cd TG-FileStream
-          echo "::group::Starting Bot with Configuration"
+          echo "::group::Starting Bot"
           echo "HOST: $HOST"
           echo "PORT: $PORT"
-          echo "BIN_CHANNEL: [PROTECTED]"
-          echo "LOG_CHANNEL: [PROTECTED]"
-          echo "Ngrok URL: $NGROK_URL"
-          echo "::endgroup::"
-          
+          echo "PUBLIC_URL: $PUBLIC_URL"
           nohup python3 -m tgfs > bot.log 2>&1 &
-          
-          # Mantener el contenedor activo
-    - name: Install Ngrok
-      run: |
-        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
-        && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-        | sudo tee /etc/apt/sources.list.d/ngrok.list \
-        && sudo apt update \
-        && sudo apt install ngrok
+          echo "::endgroup::"
 
-    - name: Configure Ngrok
-      run: |
-        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-
-    - name: Start Ngrok HTTP with custom URL
-      run: |
-        ngrok http --url=ready-unlikely-osprey.ngrok-free.app 8080
-          sleep 21500  # ~6 horas
+      - name: Keep runner alive
+        run: |
+          echo "::notice:: Streaming en ejecución durante 6h..."
+          sleep 21500  # ~5h 58min

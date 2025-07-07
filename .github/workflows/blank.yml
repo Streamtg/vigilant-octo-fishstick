@@ -43,7 +43,32 @@ jobs:
         echo "PORT=8080" >> $GITHUB_ENV
         echo "FQDN=${{ secrets.FQDN }}" >> $GITHUB_ENV
         echo "PUBLIC_URL=${{ secrets.FQDN }}" >> $GITHUB_ENV
-        echo "::notice:: Variables de entorno cargadas: API_ID, BIN_CHANNEL, etc."
+        echo "DATABASE_URL=${{ secrets.DATABASE_URL || '' }}" >> $GITHUB_ENV
+
+    - name: Generate config.py dynamically
+      run: |
+        cd TG-FileStreamBot/WebStreamer
+        cat << EOF > config.py
+class Var:
+    API_ID = int("${{ secrets.API_ID }}")
+    API_HASH = "${{ secrets.API_HASH }}"
+    BOT_TOKEN = "${{ secrets.BOT_TOKEN }}"
+    OWNER_ID = int("${{ secrets.OWNER_ID }}")
+    BIN_CHANNEL = int("${{ secrets.BIN_CHANNEL }}")
+    PORT = int("${{ secrets.PORT || 8080 }}")
+    FQDN = "${{ secrets.FQDN }}"
+    PUBLIC_URL = "${{ secrets.FQDN }}"
+    DATABASE_URL = "${{ secrets.DATABASE_URL || '' }}"
+    UPDATES_CHANNEL = ""
+    BANNED_USERS = []
+    PROTECT_CONTENT = False
+    CUSTOM_CAPTION = None
+EOF
+
+    - name: Overwrite vars.py to load from config.py
+      run: |
+        cd TG-FileStreamBot/WebStreamer
+        echo 'from .config import Var' > vars.py
 
     - name: Install Ngrok
       run: |
@@ -63,11 +88,10 @@ jobs:
         . ./venv/bin/activate
 
         echo "::group::Iniciando WebStreamer en segundo plano"
-        python3 -m WebStreamer &
+        nohup python3 -m WebStreamer > bot.log 2>&1 &
         echo "::endgroup:: Bot lanzado correctamente"
 
-        # Espera breve para asegurar que el bot levante el servidor
-        sleep 10
+        sleep 5
 
         echo "::group::Iniciando Ngrok con dominio reservado"
         exec ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app

@@ -62,8 +62,3 @@ jobs:
         echo "FQDN: $FQDN"
         nohup python3 -m WebStreamer > bot.log 2>&1 &
         echo "::endgroup:: Bot ejecutándose en segundo plano."
-
-    - name: Keep bot alive
-      run: |
-        echo "::notice:: Bot estará activo durante 6 horas."
-        sleep 21500

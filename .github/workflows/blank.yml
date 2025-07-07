@@ -1,14 +1,14 @@
-name: TG-FileStream Python Deployment
+name: TG-FileStream Deployment (Ngrok First)
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
+    - cron: '0 */6 * * *'  # Auto-restart every 6 hours
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 360  # 6 hour max
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
@@ -23,10 +23,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
@@ -35,39 +36,32 @@ jobs:
           cd TG-FileStream
           pip install -r requirements.txt
 
-      - name: Install Ngrok (fixed method)
+      - name: Install Ngrok (direct download)
         run: |
           sudo apt update
           sudo apt install -y jq wget unzip
-          # Descargar Ngrok directamente
           wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip
           unzip ngrok-v3-stable-linux-amd64.zip
           sudo mv ngrok /usr/local/bin/
-          rm ngrok-v3-stable-linux-amd64.zip
           ngrok --version
 
-      - name: Authenticate Ngrok
-        run: ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
-
-      - name: Launch Bot
+      - name: Configure Ngrok tunnel
         run: |
-          cd TG-FileStream
-          nohup python3 -m tgfs --host "$HOST" --port "$PORT" > bot.log 2>&1 &
-          sleep 15
-
-      - name: Start Ngrok Tunnel
-        run: |
+          ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
           nohup ngrok http "$PORT" --log=stdout > ngrok.log &
-          sleep 10
+          sleep 10  # Wait for Ngrok to start
           NGROK_URL=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
           echo "::notice:: Ngrok Public URL: $NGROK_URL"
           echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
 
-      - name: Verify deployment
+      - name: Launch FileStream Bot (LAST STEP)
         run: |
-          echo "✅ Bot configurado con:"
+          cd TG-FileStream
+          echo "Starting bot with config:"
           echo "HOST: $HOST"
           echo "PORT: $PORT"
-          echo "LOG_CHANNEL: $LOG_CHANNEL"
           echo "Ngrok URL: $NGROK_URL"
-          sleep 18000  # 5 horas de ejecución
+          nohup python3 -m tgfs --host "$HOST" --port "$PORT" > bot.log 2>&1 &
+          
+          # Keep-alive
+          sleep 21500  # ~6 hours (adjust as needed)

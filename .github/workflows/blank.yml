@@ -60,5 +60,5 @@ jobs:
         . ./venv/bin/activate
         echo "::group::Iniciando WebStreamer"
         echo "FQDN: $FQDN"
-        nohup python3 -m WebStreamer > bot.log 2>&1 &
+        exec python3 -m WebStreamer > bot.log 2>&1 &
         echo "::endgroup:: Bot ejecutándose en segundo plano."

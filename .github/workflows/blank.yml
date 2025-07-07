@@ -45,7 +45,7 @@ jobs:
           sudo apt update
           sudo apt install -y jq unzip
           curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sousecretsst.d/ngrok.list
           sudo apt install -y ngrok
           ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
 
@@ -58,7 +58,7 @@ jobs:
           # Ngrok con verificación de URL
           nohup ngrok http "$PORT" --log=stdout > ngrok.log &
           sleep 15
-          NGROK_URL=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+          NGROK_URL=$(curl -s locasecrets040/api/tunnels | jq -r '.tunnels[0].public_url')
           echo "::notice:: Ngrok Public URL: $NGROK_URL"
           echo "::notice:: Configured HOST: $HOST"
           echo "::notice:: Bin Channel: $BIN_CHANNEL"

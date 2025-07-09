@@ -2,7 +2,7 @@ name: Go Build and Test with Ngrok Setup
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Ejecutar cada 6 horas
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -49,11 +49,10 @@ jobs:
         git clone https://github.com/EverythingSuckz/TG-FileStreamBot
         cd TG-FileStreamBot
 
-        # Inyectar iniciarWebUI en main()
-        sed -i 's/func main()/func main() {\
-  go iniciarWebUI()/' cmd/fsb/run.go
+        # Inyectar función iniciarWebUI() en main()
+        sed -i 's/func main()/func main() {\n  go iniciarWebUI()/' cmd/fsb/run.go
 
-        # Agregar función iniciarWebUI al final del archivo
+        # Insertar definición de iniciarWebUI al final
         cat >> cmd/fsb/run.go << 'EOF'
 
 func iniciarWebUI() {
@@ -131,7 +130,7 @@ func iniciarWebUI() {
 }
 EOF
 
-        # Reemplazar rutas de respuesta por /file/
+        # Reemplazar todas las rutas /d/%s por /file/%s en el código fuente
         grep -rl '/d/%s' . | xargs sed -i 's|/d/%s|/file/%s|g'
 
         go build ./cmd/fsb/

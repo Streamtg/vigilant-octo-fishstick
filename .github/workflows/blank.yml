@@ -132,6 +132,14 @@ jobs:
         }
         EOF
 
+    - name: Define versionString to fix build
+      run: |
+        cat > TG-FileStreamBot/cmd/fsb/version.go << 'EOF'
+        package main
+
+        const versionString = "v1.0.0"
+        EOF
+
     - name: Build Bot
       run: |
         cd TG-FileStreamBot

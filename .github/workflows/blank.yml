@@ -44,103 +44,95 @@ jobs:
     - name: Verify Go installation
       run: go version
 
-    - name: Clone TG-FileStreamBot and inject web template
+    - name: Clone TG-FileStreamBot and patch with Web UI
       run: |
         git clone https://github.com/EverythingSuckz/TG-FileStreamBot
         cd TG-FileStreamBot
-        mkdir -p cmd/fsb
 
-        cat > cmd/fsb/main.go << 'EOF'
-        package main
+        # Inyectar iniciarWebUI en main()
+        sed -i 's/func main()/func main() {\
+  go iniciarWebUI()/' cmd/fsb/run.go
 
-        import (
-          "html/template"
-          "net/http"
-          "strings"
-          "log"
-          "os"
-        )
+        # Agregar función iniciarWebUI al final del archivo
+        cat >> cmd/fsb/run.go << 'EOF'
 
-        const htmlTemplate = `
-        <!DOCTYPE html>
-        <html lang="es">
-        <head>
-          <meta charset="UTF-8">
-          <title>Visor de Archivos</title>
-          <style>
-            body { font-family: sans-serif; text-align: center; padding: 2rem; background: #f4f4f4; }
-            h2 { color: #333; }
-            video, audio { width: 80%; margin-top: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-            .btn {
-              background: #007bff; color: white; text-decoration: none;
-              padding: 12px 25px; font-size: 16px; border-radius: 8px;
-              margin-top: 20px; display: inline-block;
-            }
-          </style>
-        </head>
-        <body>
-          <h2>Archivo disponible</h2>
-          {{if .IsMedia}}
-            {{if .IsVideo}}
-              <video controls autoplay>
-                <source src="{{.FileURL}}" type="video/mp4">
-                Tu navegador no soporta video.
-              </video>
-            {{else if .IsAudio}}
-              <audio controls autoplay>
-                <source src="{{.FileURL}}" type="audio/mpeg">
-                Tu navegador no soporta audio.
-              </audio>
-            {{end}}
-          {{end}}
-          <div><a href="{{.FileURL}}" class="btn" download>Descargar archivo</a></div>
-        </body>
-        </html>
-        `
+func iniciarWebUI() {
+  const htmlTemplate = `
+  <!DOCTYPE html>
+  <html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <title>Visor de Archivos</title>
+    <style>
+      body { font-family: sans-serif; text-align: center; padding: 2rem; background: #f4f4f4; }
+      h2 { color: #333; }
+      video, audio { width: 80%; margin-top: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+      .btn {
+        background: #007bff; color: white; text-decoration: none;
+        padding: 12px 25px; font-size: 16px; border-radius: 8px;
+        margin-top: 20px; display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Archivo disponible</h2>
+    {{if .IsMedia}}
+      {{if .IsVideo}}
+        <video controls autoplay>
+          <source src="{{.FileURL}}" type="video/mp4">
+          Tu navegador no soporta video.
+        </video>
+      {{else if .IsAudio}}
+        <audio controls autoplay>
+          <source src="{{.FileURL}}" type="audio/mpeg">
+          Tu navegador no soporta audio.
+        </audio>
+      {{end}}
+    {{end}}
+    <div><a href="{{.FileURL}}" class="btn" download>Descargar archivo</a></div>
+  </body>
+  </html>
+  `
 
-        func main() {
-          port := os.Getenv("PORT")
-          if port == "" {
-            port = "8080"
-          }
+  port := os.Getenv("PORT")
+  if port == "" {
+    port = "8080"
+  }
 
-          http.HandleFunc("/file/", func(w http.ResponseWriter, r *http.Request) {
-            id := strings.TrimPrefix(r.URL.Path, "/file/")
-            if id == "" {
-              http.Error(w, "ID de archivo no especificado", http.StatusBadRequest)
-              return
-            }
+  http.HandleFunc("/file/", func(w http.ResponseWriter, r *http.Request) {
+    id := strings.TrimPrefix(r.URL.Path, "/file/")
+    if id == "" {
+      http.Error(w, "ID de archivo no especificado", http.StatusBadRequest)
+      return
+    }
 
-            fileURL := "https://ready-unlikely-osprey.ngrok-free.app/d/${id}"
-            isVideo := strings.HasSuffix(fileURL, ".mp4") || strings.HasSuffix(fileURL, ".webm") || strings.HasSuffix(fileURL, ".mkv")
-            isAudio := strings.HasSuffix(fileURL, ".mp3") || strings.HasSuffix(fileURL, ".m4a") || strings.HasSuffix(fileURL, ".ogg")
+    fileURL := "https://ready-unlikely-osprey.ngrok-free.app/d/" + id
+    isVideo := strings.HasSuffix(fileURL, ".mp4") || strings.HasSuffix(fileURL, ".webm") || strings.HasSuffix(fileURL, ".mkv")
+    isAudio := strings.HasSuffix(fileURL, ".mp3") || strings.HasSuffix(fileURL, ".m4a") || strings.HasSuffix(fileURL, ".ogg")
 
-            data := map[string]interface{}{
-              "FileURL": fileURL,
-              "IsMedia": isVideo || isAudio,
-              "IsVideo": isVideo,
-              "IsAudio": isAudio,
-            }
+    data := map[string]interface{}{
+      "FileURL": fileURL,
+      "IsMedia": isVideo || isAudio,
+      "IsVideo": isVideo,
+      "IsAudio": isAudio,
+    }
 
-            tmpl, err := template.New("page").Parse(htmlTemplate)
-            if err != nil {
-              http.Error(w, "Error de plantilla", http.StatusInternalServerError)
-              return
-            }
-            w.Header().Set("Content-Type", "text/html")
-            tmpl.Execute(w, data)
-          })
+    tmpl, err := template.New("page").Parse(htmlTemplate)
+    if err != nil {
+      http.Error(w, "Error de plantilla", http.StatusInternalServerError)
+      return
+    }
+    w.Header().Set("Content-Type", "text/html")
+    tmpl.Execute(w, data)
+  })
 
-          log.Println("Servidor iniciado en http://localhost:" + port)
-          http.ListenAndServe(":" + port, nil)
-        }
-        EOF
+  log.Println("WebUI en http://localhost:" + port)
+  go http.ListenAndServe(":" + port, nil)
+}
+EOF
 
-        cat > cmd/fsb/version.go << 'EOF'
-        package main
-
-        const versionString = "v1.0.0"
-        EOF
+        # Reemplazar rutas de respuesta por /file/
+        grep -rl '/d/%s' . | xargs sed -i 's|/d/%s|/file/%s|g'
 
         go build ./cmd/fsb/
         chmod +x fsb
@@ -148,7 +140,7 @@ jobs:
     - name: Run TG-FileStreamBot
       run: |
         cd TG-FileStreamBot
-        ./fsb run & # Ejecuta el proceso en segundo plano
+        ./fsb run &
 
     - name: Install Ngrok
       run: |

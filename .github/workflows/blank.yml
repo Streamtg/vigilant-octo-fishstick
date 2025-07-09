@@ -1,109 +1,57 @@
-name: TG-FileStreamBot v2.0 Deployment
+name: Python FileStreamBot with Ngrok Setup
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
+  workflow_dispatch:       # Permitir ejecución manual
 
 jobs:
-  run-bot:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    env:
+      API_ID: ${{ secrets.API_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+      PORT: 8080
+      HOST: 0.0.0.0
+      PYTHONUNBUFFERED: 1
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Clonar repositorio TG-FileStreamBot (rama worker)
+      run: |
+        git clone --branch worker https://github.com/DeekshithSH/TG-FileStreamBot.git
+        cd TG-FileStreamBot
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
 
-      - name: Clone TG-FileStreamBot (Old-v2.0)
-        run: |
-          git clone -b Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
-          sudo apt update
-          sudo apt install -y python3-virtualenv
-          cd TG-FileStreamBot
-          virtualenv -p python3 venv
-          . venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Instalar dependencias
+      run: |
+        cd TG-FileStreamBot
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Generate config.py with embedded OWNER_ID
-        run: |
-          cd TG-FileStreamBot/WebStreamer
+    - name: Instalar Ngrok
+      run: |
+        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+        sudo apt update && sudo apt install ngrok
 
-          echo 'class Var:' > config.py
-          echo "    API_ID = int('${{ secrets.API_ID }}')" >> config.py
-          echo "    API_HASH = '${{ secrets.API_HASH }}'" >> config.py
-          echo "    BOT_TOKEN = '${{ secrets.BOT_TOKEN }}'" >> config.py
-          echo "    OWNER_ID = 834554042" >> config.py
-          echo "    BIN_CHANNEL = int('${{ secrets.BIN_CHANNEL }}')" >> config.py
-          echo "    PORT = 8080" >> config.py
-          echo "    FQDN = '${{ secrets.FQDN }}'" >> config.py
-          echo "    PUBLIC_URL = '${{ secrets.FQDN }}'" >> config.py
-          echo "    DATABASE_URL = '${{ secrets.DATABASE_URL }}'" >> config.py
-          echo "    UPDATES_CHANNEL = ''" >> config.py
-          echo "    BANNED_USERS = []" >> config.py
-          echo "    PROTECT_CONTENT = False" >> config.py
-          echo "    CUSTOM_CAPTION = None" >> config.py
+    - name: Configurar Ngrok
+      run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Override vars.py to import from config.py
-        run: |
-          echo 'from .config import Var' > TG-FileStreamBot/WebStreamer/vars.py
+    - name: Lanzar Ngrok con subdominio personalizado
+      run: |
+        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app 8080 > ngrok.log &
 
-      - name: Install Ngrok
-        run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install -y ngrok
-
-      - name: Configure Ngrok
-        run: |
-          ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
-
-      - name: Launch Bot and Ngrok
-        run: |
-          cd TG-FileStreamBot
-          . venv/bin/activate
-          echo "::group::Iniciando WebStreamer en segundo plano"
-          nohup python3 -m WebStreamer
-          echo "::endgroup::"
-          sleep 5
-          echo "::group::Iniciando Ngrok con dominio reservado"
-          ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app
-
-      - name: Mostrar logs del bot si falla
-        if: always()
-        run: |
-          echo "::group::Contenido del archivo bot.log"
-          cat TG-FileStreamBot/bot.log || echo "No se pudo encontrar bot.log"
-          echo "::endgroup::"
-
-      - name: Enviar error a Telegram (LOG_CHANNEL)
-        if: failure()
-        run: |
-          echo "::group::Enviando logs a Telegram..."
-
-          LOG_FILE="TG-FileStreamBot/bot.log"
-
-          if [ -f "$LOG_FILE" ]; then
-            TRIMMED_LOG=$(tail -n 20 "$LOG_FILE" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
-          else
-            TRIMMED_LOG="No se encontró bot.log"
-          fi
-
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage" \
-            -d chat_id=${{ secrets.LOG_CHANNEL }} \
-            -d text="⚠️ *TG-FileStreamBot Error en GitHub Actions*\n\n\`\`\`\n${TRIMMED_LOG}\n\`\`\`" \
-            -d parse_mode=Markdown
-
-          echo "::endgroup::"
-
- name: Clean up bot.log
-        if: always()
-        run: |
-          echo "::group::Cleaning up bot.log"
-          rm -f TG-FileStreamBot/bot.log || echo "Nothing to delete"
-          echo "::endgroup::"
+    - name: Ejecutar FileStreamBot
+      run: |
+        cd TG-FileStreamBot
+        python3 -m src > bot.log 2>&1 &
+        sleep 10
+        echo "Logs del bot:"
+        tail -n 20 bot.log

@@ -23,12 +23,20 @@ jobs:
     - name: Clonar TG-FileStreamBot
       run: git clone https://github.com/EverythingSuckz/TG-FileStreamBot
 
-    - name: Crear entorno virtual e instalar dependencias
+    - name: Crear entorno virtual
+      working-directory: TG-FileStreamBot
+      run: python3 -m venv venv
+
+    - name: Activar entorno e instalar pip actualizado
       working-directory: TG-FileStreamBot
       run: |
-        python3 -m venv venv
         . ./venv/bin/activate
         pip install --upgrade pip
+
+    - name: Instalar dependencias desde requirements.txt
+      working-directory: TG-FileStreamBot
+      run: |
+        . ./venv/bin/activate
         pip install -r requirements.txt
 
     - name: Instalar Ngrok

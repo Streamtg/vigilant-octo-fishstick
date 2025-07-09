@@ -166,5 +166,4 @@ jobs:
 
     - name: Start Ngrok HTTP with custom URL
       run: |
-        ngrok http --hostname=ready-unlikely-osprey.ngrok-free.app 8080 &
-        sleep 10 && curl -s http://localhost:4040/api/tunnels
+        ngrok http --hostname=ready-unlikely-osprey.ngrok-free.app 8080

@@ -1,145 +1,162 @@
 name: Go Build and Test with Ngrok Setup
 
-on: schedule: - cron: '0 */6 * * *' # Ejecutar cada 6 horas workflow_dispatch: # Permitir disparar manualmente el flujo de trabajo
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Ejecutar cada 6 horas
+  workflow_dispatch: # Permitir disparar manualmente el flujo de trabajo
 
-jobs: build: runs-on: ubuntu-latest strategy: max-parallel: 1 fail-fast: false matrix: go: [1.23.4] flag: [A] timeout-minutes: 360 env: API_ID: ${{ secrets.API_ID }} API_HASH: ${{ secrets.API_HASH }} BOT_TOKEN: ${{ secrets.BOT_TOKEN }} LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }} PORT: ${{ secrets.PORT }} HOST: ${{ secrets.HOST }} NUM_JOBS: 900 JOB: ${{ matrix.go }}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        go: [1.23.4]
+        flag: [A]
+    timeout-minutes: 360
+    env:
+      API_ID: ${{ secrets.API_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
+      PORT: 8080
+      HOST: ${{ secrets.HOST }}
+      NUM_JOBS: 900
+      JOB: ${{ matrix.go }}
 
-steps:
-- name: Checkout repository
-  uses: actions/checkout@v2
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-- name: Set up Python
-  uses: actions/setup-python@v2
-  with:
-    python-version: '3.x'
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
 
-- name: Install Go
-  run: |
-    wget https://go.dev/dl/go${{ matrix.go }}.linux-amd64.tar.gz
-    sudo rm -rf /usr/local/go
-    sudo tar -C /usr/local -xzf go${{ matrix.go }}.linux-amd64.tar.gz
-    echo "/usr/local/go/bin" >> $GITHUB_PATH
+    - name: Install Go
+      run: |
+        wget https://go.dev/dl/go${{ matrix.go }}.linux-amd64.tar.gz
+        sudo rm -rf /usr/local/go
+        sudo tar -C /usr/local -xzf go${{ matrix.go }}.linux-amd64.tar.gz
+        echo "/usr/local/go/bin" >> $GITHUB_PATH
 
-- name: Verify Go installation
-  run: go version
+    - name: Clone TG-FileStreamBot and embed web UI
+      run: |
+        git clone https://github.com/EverythingSuckz/TG-FileStreamBot
+        cd TG-FileStreamBot
+        mkdir -p cmd/fsb
+        cat > cmd/fsb/main.go << 'EOF'
+        package main
 
-- name: Clone TG-FileStreamBot and embed web UI
-  run: |
-    git clone https://github.com/EverythingSuckz/TG-FileStreamBot
-    cd TG-FileStreamBot
-    mkdir -p cmd/fsb
-    cat > cmd/fsb/main.go << 'EOF'
-    package main
+        import (
+          "html/template"
+          "net/http"
+          "strings"
+          "log"
+          "os"
+        )
 
-    import (
-      "html/template"
-      "net/http"
-      "strings"
-      "log"
-      "os"
-    )
+        const htmlTemplate = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <title>Visor de Archivos</title>
+          <style>
+            body { font-family: sans-serif; text-align: center; padding: 2rem; background: #f4f4f4; }
+            h2 { color: #333; }
+            video, audio { width: 80%; margin-top: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+            .btn {
+              background: #007bff; color: white; text-decoration: none;
+              padding: 12px 25px; font-size: 16px; border-radius: 8px;
+              margin-top: 20px; display: inline-block;
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Archivo disponible</h2>
+          {{if .IsMedia}}
+            {{if .IsVideo}}
+              <video controls autoplay>
+                <source src="{{.FileURL}}" type="video/mp4">
+                Tu navegador no soporta video.
+              </video>
+            {{else if .IsAudio}}
+              <audio controls autoplay>
+                <source src="{{.FileURL}}" type="audio/mpeg">
+                Tu navegador no soporta audio.
+              </audio>
+            {{end}}
+          {{end}}
+          <div><a href="{{.FileURL}}" class="btn" download>Descargar archivo</a></div>
+        </body>
+        </html>
+        `
 
-    const htmlTemplate = `
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <title>Visor de Archivos</title>
-      <style>
-        body { font-family: sans-serif; text-align: center; padding: 2rem; background: #f4f4f4; }
-        h2 { color: #333; }
-        video, audio { width: 80%; margin-top: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .btn {
-          background: #007bff; color: white; text-decoration: none;
-          padding: 12px 25px; font-size: 16px; border-radius: 8px;
-          margin-top: 20px; display: inline-block;
+        func main() {
+          port := os.Getenv("PORT")
+          if port == "" {
+            port = "8080"
+          }
+
+          http.HandleFunc("/file/", func(w http.ResponseWriter, r *http.Request) {
+            id := strings.TrimPrefix(r.URL.Path, "/file/")
+            if id == "" {
+              http.Error(w, "ID de archivo no especificado", http.StatusBadRequest)
+              return
+            }
+
+            fileURL := "https://example.com/files/" + id
+            isVideo := strings.HasSuffix(fileURL, ".mp4") || strings.HasSuffix(fileURL, ".webm") || strings.HasSuffix(fileURL, ".mkv")
+            isAudio := strings.HasSuffix(fileURL, ".mp3") || strings.HasSuffix(fileURL, ".m4a") || strings.HasSuffix(fileURL, ".ogg")
+
+            data := map[string]interface{}{
+              "FileURL": fileURL,
+              "IsMedia": isVideo || isAudio,
+              "IsVideo": isVideo,
+              "IsAudio": isAudio,
+            }
+
+            tmpl, err := template.New("page").Parse(htmlTemplate)
+            if err != nil {
+              http.Error(w, "Error de plantilla", http.StatusInternalServerError)
+              return
+            }
+            w.Header().Set("Content-Type", "text/html")
+            tmpl.Execute(w, data)
+          })
+
+          log.Println("Servidor iniciado en http://localhost:" + port)
+          http.ListenAndServe(":" + port, nil)
         }
-      </style>
-    </head>
-    <body>
-      <h2>Archivo disponible</h2>
-      {{if .IsMedia}}
-        {{if .IsVideo}}
-          <video controls autoplay>
-            <source src="{{.FileURL}}" type="video/mp4">
-            Tu navegador no soporta video.
-          </video>
-        {{else if .IsAudio}}
-          <audio controls autoplay>
-            <source src="{{.FileURL}}" type="audio/mpeg">
-            Tu navegador no soporta audio.
-          </audio>
-        {{end}}
-      {{end}}
-      <div><a href="{{.FileURL}}" class="btn" download>Descargar archivo</a></div>
-    </body>
-    </html>
-    `
+        EOF
 
-    func main() {
-      port := os.Getenv("PORT")
-      if port == "" {
-        port = "8080"
-      }
+    - name: Build Bot
+      run: |
+        cd TG-FileStreamBot
+        go build ./cmd/fsb/ -o fsb
+        chmod +x fsb
 
-      http.HandleFunc("/file/", func(w http.ResponseWriter, r *http.Request) {
-        id := strings.TrimPrefix(r.URL.Path, "/file/")
-        if id == "" {
-          http.Error(w, "ID de archivo no especificado", http.StatusBadRequest)
-          return
-        }
+    - name: Run TG-FileStreamBot
+      run: |
+        cd TG-FileStreamBot
+        ./fsb &
 
-        fileURL := "https://example.com/files/" + id
-        isVideo := strings.HasSuffix(fileURL, ".mp4") || strings.HasSuffix(fileURL, ".webm") || strings.HasSuffix(fileURL, ".mkv")
-        isAudio := strings.HasSuffix(fileURL, ".mp3") || strings.HasSuffix(fileURL, ".m4a") || strings.HasSuffix(fileURL, ".ogg")
+    - name: Install Ngrok
+      run: |
+        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+        | sudo tee /etc/apt/sources.list.d/ngrok.list
+        sudo apt update
+        sudo apt install -y ngrok
 
-        data := map[string]interface{}{
-          "FileURL": fileURL,
-          "IsMedia": isVideo || isAudio,
-          "IsVideo": isVideo,
-          "IsAudio": isAudio,
-        }
+    - name: Configure Ngrok
+      run: |
+        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-        tmpl, err := template.New("page").Parse(htmlTemplate)
-        if err != nil {
-          http.Error(w, "Error de plantilla", http.StatusInternalServerError)
-          return
-        }
-        w.Header().Set("Content-Type", "text/html")
-        tmpl.Execute(w, data)
-      })
-
-      log.Println("Servidor iniciado en http://localhost:" + port)
-      http.ListenAndServe(":" + port, nil)
-    }
-    EOF
-
-- name: Build Bot
-  run: |
-    cd TG-FileStreamBot
-    go build ./cmd/fsb/ -o fsb
-    chmod +x fsb
-
-- name: Run TG-FileStreamBot
-  run: |
-    cd TG-FileStreamBot
-    ./fsb &
-
-- name: Install Ngrok
-  run: |
-    curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-    | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-    echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-    | sudo tee /etc/apt/sources.list.d/ngrok.list
-    sudo apt update
-    sudo apt install -y ngrok
-
-- name: Configure Ngrok
-  run: |
-    ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-
-- name: Start Ngrok HTTP with custom URL
-  run: |
-    ngrok http --hostname=ready-unlikely-osprey.ngrok-free.app 8080 &
-    sleep 10 && curl -s http://localhost:4040/api/tunnels
-
+    - name: Start Ngrok HTTP with custom URL
+      run: |
+        ngrok http --hostname=ready-unlikely-osprey.ngrok-free.app 8080 &
+        sleep 10 && curl -s http://localhost:4040/api/tunnels

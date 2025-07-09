@@ -21,7 +21,7 @@ jobs:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
       PORT: 8080
-      HOST: 0.0.0.0
+      HOST: ready-unlikely-osprey.ngrok-free.app
       NUM_JOBS: 900
       JOB: ${{ matrix.go }}
 

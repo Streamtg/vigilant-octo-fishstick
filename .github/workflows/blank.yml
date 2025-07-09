@@ -20,24 +20,18 @@ jobs:
       PYTHONUNBUFFERED: 1
 
     steps:
-    - name: Clonar TG-FileStreamBot
+    - name: Clonar repositorio
       run: git clone https://github.com/EverythingSuckz/TG-FileStreamBot
 
-    - name: Crear entorno virtual
-      working-directory: TG-FileStreamBot
-      run: python3 -m venv venv
-
-    - name: Activar entorno e instalar pip actualizado
+    - name: Configurar y activar entorno virtual, instalar dependencias y lanzar bot
       working-directory: TG-FileStreamBot
       run: |
+        sudo apt update && sudo apt install -y virtualenv
+        virtualenv -p /usr/bin/python3 venv
         . ./venv/bin/activate
         pip install --upgrade pip
-
-    - name: Instalar dependencias desde requirements.txt
-      working-directory: TG-FileStreamBot
-      run: |
-        . ./venv/bin/activate
         pip install -r requirements.txt
+        nohup python3 -m WebStreamer > bot.log 2>&1 &
 
     - name: Instalar Ngrok
       run: |
@@ -48,13 +42,5 @@ jobs:
     - name: Configurar Ngrok token
       run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-    - name: Iniciar túnel Ngrok con subdominio fijo
+    - name: Iniciar túnel Ngrok con subdominio personalizado
       run: nohup ngrok http --domain=${{ secrets.FQDN }} ${{ secrets.PORT }} > ngrok.log &
-
-    - name: Ejecutar FileStreamBot
-      working-directory: TG-FileStreamBot
-      run: |
-        . ./venv/bin/activate
-        nohup python3 -m WebStreamer > bot.log 2>&1 &
-        sleep 10
-        tail -n 20 bot.log

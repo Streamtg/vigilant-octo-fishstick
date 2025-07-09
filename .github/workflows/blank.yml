@@ -3,7 +3,7 @@ name: Go Build and Test with Ngrok Setup
 on:
   schedule:
     - cron: '0 */6 * * *' # Ejecutar cada 6 horas
-  workflow_dispatch: # Permitir disparar manualmente el flujo de trabajo
+  workflow_dispatch:
 
 jobs:
   build:
@@ -135,7 +135,7 @@ jobs:
     - name: Build Bot
       run: |
         cd TG-FileStreamBot
-        go build ./cmd/fsb/ -o fsb
+        go build -o fsb ./cmd/fsb/
         chmod +x fsb
 
     - name: Run TG-FileStreamBot

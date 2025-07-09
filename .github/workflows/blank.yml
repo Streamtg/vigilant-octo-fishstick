@@ -137,8 +137,8 @@ jobs:
           awk '/func main\(\)/ {print; print "  go iniciarWebUI()"; next} {print}' cmd/fsb/run.go > cmd/fsb/run.go.tmp
           mv cmd/fsb/run.go.tmp cmd/fsb/run.go
 
-          # Reemplazar rutas /d/%s por /file/%s
-          grep -rl '/d/%s' . | xargs sed -i 's|/d/%s|/file/%s|g'
+          # Reemplazar rutas /d/%s por /file/%s, evitando error si no hay archivos
+          grep -rl '/d/%s' . | xargs -r sed -i 's|/d/%s|/file/%s|g'
 
           go build ./cmd/fsb/
           chmod +x fsb

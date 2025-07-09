@@ -44,22 +44,22 @@ jobs:
     - name: Verify Go installation
       run: go version
 
-    - name: Clone TG-FileStreamBot and patch with Web UI
+    - name: Clone TG-FileStreamBot and prepare WebUI module
       run: |
         git clone https://github.com/EverythingSuckz/TG-FileStreamBot
         cd TG-FileStreamBot
 
-        # Inyectar función iniciarWebUI() en main() usando awk para evitar problemas con \n
-        awk '
-        /func main\(\)/ {
-          print; print "  go iniciarWebUI()"
-          next
-        }
-        { print }
-        ' cmd/fsb/run.go > cmd/fsb/tmp.go && mv cmd/fsb/tmp.go cmd/fsb/run.go
+        # Crear archivo webui.go con la función iniciarWebUI
+        cat > webui.go << 'EOF'
+package main
 
-        # Insertar definición de iniciarWebUI al final del archivo
-        cat >> cmd/fsb/run.go << 'EOF'
+import (
+  "html/template"
+  "log"
+  "net/http"
+  "os"
+  "strings"
+)
 
 func iniciarWebUI() {
   const htmlTemplate = `
@@ -136,7 +136,11 @@ func iniciarWebUI() {
 }
 EOF
 
-        # Reemplazar rutas en código para usar /file/ en vez de /d/
+        # Inyectar llamada a iniciarWebUI() en main()
+        awk '/func main\(\)/ {print; print "  go iniciarWebUI()"; next} {print}' cmd/fsb/run.go > cmd/fsb/run.go.tmp
+        mv cmd/fsb/run.go.tmp cmd/fsb/run.go
+
+        # Reemplazar rutas /d/%s por /file/%s
         grep -rl '/d/%s' . | xargs sed -i 's|/d/%s|/file/%s|g'
 
         go build ./cmd/fsb/

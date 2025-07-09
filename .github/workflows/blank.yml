@@ -93,6 +93,4 @@ jobs:
 
       - name: Launch Ngrok and show tunnel URL
         run: |
-          nohup ngrok http 8080 > /dev/null &
-          sleep 5
-          curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' & sleep 99999
+          nohup ngrok http --url=ready-unlikely-osprey.ngrok-free.app 8080 & sleep 99999

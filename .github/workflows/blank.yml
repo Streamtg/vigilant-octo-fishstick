@@ -49,10 +49,16 @@ jobs:
         git clone https://github.com/EverythingSuckz/TG-FileStreamBot
         cd TG-FileStreamBot
 
-        # Inyectar función iniciarWebUI() en main()
-        sed -i 's/func main()/func main() {\n  go iniciarWebUI()/' cmd/fsb/run.go
+        # Inyectar función iniciarWebUI() en main() usando awk para evitar problemas con \n
+        awk '
+        /func main\(\)/ {
+          print; print "  go iniciarWebUI()"
+          next
+        }
+        { print }
+        ' cmd/fsb/run.go > cmd/fsb/tmp.go && mv cmd/fsb/tmp.go cmd/fsb/run.go
 
-        # Insertar definición de iniciarWebUI al final
+        # Insertar definición de iniciarWebUI al final del archivo
         cat >> cmd/fsb/run.go << 'EOF'
 
 func iniciarWebUI() {
@@ -130,7 +136,7 @@ func iniciarWebUI() {
 }
 EOF
 
-        # Reemplazar todas las rutas /d/%s por /file/%s en el código fuente
+        # Reemplazar rutas en código para usar /file/ en vez de /d/
         grep -rl '/d/%s' . | xargs sed -i 's|/d/%s|/file/%s|g'
 
         go build ./cmd/fsb/

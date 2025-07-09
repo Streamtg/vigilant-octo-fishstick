@@ -21,14 +21,11 @@ jobs:
 
     steps:
     - name: Clonar TG-FileStreamBot
-      run: |
-        git clone https://github.com/EverythingSuckz/TG-FileStreamBot
-        cd TG-FileStreamBot
+      run: git clone https://github.com/EverythingSuckz/TG-FileStreamBot
 
     - name: Crear entorno virtual e instalar dependencias
+      working-directory: TG-FileStreamBot
       run: |
-        cd TG-FileStreamBot
-        sudo apt update && sudo apt install -y python3-venv
         python3 -m venv venv
         . ./venv/bin/activate
         pip install --upgrade pip
@@ -44,14 +41,12 @@ jobs:
       run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
     - name: Iniciar túnel Ngrok con subdominio fijo
-      run: |
-        nohup ngrok http --domain=${{ secrets.FQDN }} ${{ secrets.PORT }} > ngrok.log &
+      run: nohup ngrok http --domain=${{ secrets.FQDN }} ${{ secrets.PORT }} > ngrok.log &
 
     - name: Ejecutar FileStreamBot
+      working-directory: TG-FileStreamBot
       run: |
-        cd TG-FileStreamBot
         . ./venv/bin/activate
         nohup python3 -m WebStreamer > bot.log 2>&1 &
         sleep 10
-        echo "Últimos logs:"
         tail -n 20 bot.log

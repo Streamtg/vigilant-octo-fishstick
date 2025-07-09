@@ -1,46 +1,74 @@
-name: TG-FileStreamBot Python + Ngrok
+name: Go Build and Test with Ngrok Setup
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
+    - cron: '0 */6 * * *' # Ejecutar cada 6 horas
+  workflow_dispatch: # Permitir disparar manualmente el flujo de trabajo
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        go: [1.23.4]
+        flag: [A]
     timeout-minutes: 360
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+      LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
       PORT: ${{ secrets.PORT }}
-      FQDN: ${{ secrets.FQDN }}
-      HOST: 0.0.0.0
-      PYTHONUNBUFFERED: 1
+      HOST: ${{ secrets.HOST }}
+      NUM_JOBS: 900
+      JOB: ${{ matrix.go }}
 
     steps:
-    - name: Clonar repositorio
-      run: git clone https://github.com/EverythingSuckz/TG-FileStreamBot
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-    - name: Configurar y activar entorno virtual, instalar dependencias y lanzar bot
-      working-directory: TG-FileStreamBot
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install Go
       run: |
-        sudo apt update && sudo apt install -y virtualenv
-        virtualenv -p /usr/bin/python3 venv
-        . ./venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
-        nohup python3 -m WebStreamer > bot.log 2>&1 &
+        wget https://go.dev/dl/go${{ matrix.go }}.linux-amd64.tar.gz
+        sudo rm -rf /usr/local/go
+        sudo tar -C /usr/local -xzf go${{ matrix.go }}.linux-amd64.tar.gz
+        echo "export PATH=$PATH:/usr/local/go/bin" >> $GITHUB_ENV
 
-    - name: Instalar Ngrok
+    - name: Verify Go installation
+      run: go version
+
+    - name: Clone and build TG-FileStreamBot
       run: |
-        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-        sudo apt update && sudo apt install ngrok
+        git clone https://github.com/EverythingSuckz/TG-FileStreamBot
+        cd TG-FileStreamBot
+        go build ./cmd/fsb/
+        chmod +x fsb
 
-    - name: Configurar Ngrok token
-      run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+    - name: Run TG-FileStreamBot
+      run: |
+        cd TG-FileStreamBot
+        ./fsb run & # Ejecuta el proceso en segundo plano
 
-    - name: Iniciar túnel Ngrok con subdominio personalizado
-      run: nohup ngrok http --domain=${{ secrets.FQDN }} ${{ secrets.PORT }} > ngrok.log &
+    - name: Install Ngrok
+      run: |
+        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+        && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+        | sudo tee /etc/apt/sources.list.d/ngrok.list \
+        && sudo apt update \
+        && sudo apt install ngrok
+
+    - name: Configure Ngrok
+      run: |
+        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+
+    - name: Start Ngrok HTTP with custom URL
+      run: |
+        ngrok http --url=ready-unlikely-osprey.ngrok-free.app 8080

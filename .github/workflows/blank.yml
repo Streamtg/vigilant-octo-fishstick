@@ -2,8 +2,8 @@ name: Go Build and Test with Ngrok Setup
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
+    - cron: '0 */6 * * *' # Ejecutar cada 6 horas
+  workflow_dispatch: # Permitir disparar manualmente el flujo de trabajo
 
 jobs:
   build:
@@ -44,106 +44,102 @@ jobs:
       - name: Verify Go installation
         run: go version
 
-      - name: Clone repository and inject WebUI
+      - name: Clone repository and create webui.go with echo
         run: |
           git clone https://github.com/EverythingSuckz/TG-FileStreamBot
           cd TG-FileStreamBot
 
-          # Crear archivo separado webui.go con la función iniciarWebUI()
-          cat > webui.go << 'EOF'
-package main
-
-import (
-  "html/template"
-  "log"
-  "net/http"
-  "os"
-  "strings"
-)
-
-func iniciarWebUI() {
-  const htmlTemplate = `
-  <!DOCTYPE html>
-  <html lang="es">
-  <head>
-    <meta charset="UTF-8">
-    <title>Visor de Archivos</title>
-    <style>
-      body { font-family: sans-serif; text-align: center; padding: 2rem; background: #f4f4f4; }
-      h2 { color: #333; }
-      video, audio { width: 80%; margin-top: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-      .btn {
-        background: #007bff; color: white; text-decoration: none;
-        padding: 12px 25px; font-size: 16px; border-radius: 8px;
-        margin-top: 20px; display: inline-block;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>Archivo disponible</h2>
-    {{if .IsMedia}}
-      {{if .IsVideo}}
-        <video controls autoplay>
-          <source src="{{.FileURL}}" type="video/mp4">
-          Tu navegador no soporta video.
-        </video>
-      {{else if .IsAudio}}
-        <audio controls autoplay>
-          <source src="{{.FileURL}}" type="audio/mpeg">
-          Tu navegador no soporta audio.
-        </audio>
-      {{end}}
-    {{end}}
-    <div><a href="{{.FileURL}}" class="btn" download>Descargar archivo</a></div>
-  </body>
-  </html>
-  `
-
-  port := os.Getenv("PORT")
-  if port == "" {
-    port = "8080"
-  }
-
-  http.HandleFunc("/file/", func(w http.ResponseWriter, r *http.Request) {
-    id := strings.TrimPrefix(r.URL.Path, "/file/")
-    if id == "" {
-      http.Error(w, "ID de archivo no especificado", http.StatusBadRequest)
-      return
-    }
-
-    fileURL := "https://ready-unlikely-osprey.ngrok-free.app/d/" + id
-    isVideo := strings.HasSuffix(fileURL, ".mp4") || strings.HasSuffix(fileURL, ".webm") || strings.HasSuffix(fileURL, ".mkv")
-    isAudio := strings.HasSuffix(fileURL, ".mp3") || strings.HasSuffix(fileURL, ".m4a") || strings.HasSuffix(fileURL, ".ogg")
-
-    data := map[string]interface{}{
-      "FileURL": fileURL,
-      "IsMedia": isVideo || isAudio,
-      "IsVideo": isVideo,
-      "IsAudio": isAudio,
-    }
-
-    tmpl, err := template.New("page").Parse(htmlTemplate)
-    if err != nil {
-      http.Error(w, "Error de plantilla", http.StatusInternalServerError)
-      return
-    }
-    w.Header().Set("Content-Type", "text/html")
-    tmpl.Execute(w, data)
-  })
-
-  log.Println("WebUI en http://localhost:" + port)
-  go http.ListenAndServe(":" + port, nil)
-}
-EOF
+          echo "package main" > webui.go
+          echo "" >> webui.go
+          echo "import (" >> webui.go
+          echo "  \"html/template\"" >> webui.go
+          echo "  \"log\"" >> webui.go
+          echo "  \"net/http\"" >> webui.go
+          echo "  \"os\"" >> webui.go
+          echo "  \"strings\"" >> webui.go
+          echo ")" >> webui.go
+          echo "" >> webui.go
+          echo "func iniciarWebUI() {" >> webui.go
+          echo "  const htmlTemplate = \`" >> webui.go
+          echo "  <!DOCTYPE html>" >> webui.go
+          echo "  <html lang=\"es\">" >> webui.go
+          echo "  <head>" >> webui.go
+          echo "    <meta charset=\"UTF-8\">" >> webui.go
+          echo "    <title>Visor de Archivos</title>" >> webui.go
+          echo "    <style>" >> webui.go
+          echo "      body { font-family: sans-serif; text-align: center; padding: 2rem; background: #f4f4f4; }" >> webui.go
+          echo "      h2 { color: #333; }" >> webui.go
+          echo "      video, audio { width: 80%; margin-top: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }" >> webui.go
+          echo "      .btn {" >> webui.go
+          echo "        background: #007bff; color: white; text-decoration: none;" >> webui.go
+          echo "        padding: 12px 25px; font-size: 16px; border-radius: 8px;" >> webui.go
+          echo "        margin-top: 20px; display: inline-block;" >> webui.go
+          echo "      }" >> webui.go
+          echo "    </style>" >> webui.go
+          echo "  </head>" >> webui.go
+          echo "  <body>" >> webui.go
+          echo "    <h2>Archivo disponible</h2>" >> webui.go
+          echo "    {{if .IsMedia}}" >> webui.go
+          echo "      {{if .IsVideo}}" >> webui.go
+          echo "        <video controls autoplay>" >> webui.go
+          echo "          <source src=\"{{.FileURL}}\" type=\"video/mp4\">" >> webui.go
+          echo "          Tu navegador no soporta video." >> webui.go
+          echo "        </video>" >> webui.go
+          echo "      {{else if .IsAudio}}" >> webui.go
+          echo "        <audio controls autoplay>" >> webui.go
+          echo "          <source src=\"{{.FileURL}}\" type=\"audio/mpeg\">" >> webui.go
+          echo "          Tu navegador no soporta audio." >> webui.go
+          echo "        </audio>" >> webui.go
+          echo "      {{end}}" >> webui.go
+          echo "    {{end}}" >> webui.go
+          echo "    <div><a href=\"{{.FileURL}}\" class=\"btn\" download>Descargar archivo</a></div>" >> webui.go
+          echo "  </body>" >> webui.go
+          echo "  </html>" >> webui.go
+          echo "  \`" >> webui.go
+          echo "" >> webui.go
+          echo "  port := os.Getenv(\"PORT\")" >> webui.go
+          echo "  if port == \"\" {" >> webui.go
+          echo "    port = \"8080\"" >> webui.go
+          echo "  }" >> webui.go
+          echo "" >> webui.go
+          echo "  http.HandleFunc(\"/file/\", func(w http.ResponseWriter, r *http.Request) {" >> webui.go
+          echo "    id := strings.TrimPrefix(r.URL.Path, \"/file/\")" >> webui.go
+          echo "    if id == \"\" {" >> webui.go
+          echo "      http.Error(w, \"ID de archivo no especificado\", http.StatusBadRequest)" >> webui.go
+          echo "      return" >> webui.go
+          echo "    }" >> webui.go
+          echo "" >> webui.go
+          echo "    fileURL := \"https://ready-unlikely-osprey.ngrok-free.app/d/\" + id" >> webui.go
+          echo "    isVideo := strings.HasSuffix(fileURL, \".mp4\") || strings.HasSuffix(fileURL, \".webm\") || strings.HasSuffix(fileURL, \".mkv\")" >> webui.go
+          echo "    isAudio := strings.HasSuffix(fileURL, \".mp3\") || strings.HasSuffix(fileURL, \".m4a\") || strings.HasSuffix(fileURL, \".ogg\")" >> webui.go
+          echo "" >> webui.go
+          echo "    data := map[string]interface{}{" >> webui.go
+          echo "      \"FileURL\": fileURL," >> webui.go
+          echo "      \"IsMedia\": isVideo || isAudio," >> webui.go
+          echo "      \"IsVideo\": isVideo," >> webui.go
+          echo "      \"IsAudio\": isAudio," >> webui.go
+          echo "    }" >> webui.go
+          echo "" >> webui.go
+          echo "    tmpl, err := template.New(\"page\").Parse(htmlTemplate)" >> webui.go
+          echo "    if err != nil {" >> webui.go
+          echo "      http.Error(w, \"Error de plantilla\", http.StatusInternalServerError)" >> webui.go
+          echo "      return" >> webui.go
+          echo "    }" >> webui.go
+          echo "    w.Header().Set(\"Content-Type\", \"text/html\")" >> webui.go
+          echo "    tmpl.Execute(w, data)" >> webui.go
+          echo "  })" >> webui.go
+          echo "" >> webui.go
+          echo "  log.Println(\"WebUI en http://localhost:\" + port)" >> webui.go
+          echo "  go http.ListenAndServe(\":\" + port, nil)" >> webui.go
+          echo "}" >> webui.go
 
           # Inyectar llamada a iniciarWebUI() en main()
           awk '/func main\(\)/ {print; print "  go iniciarWebUI()"; next} {print}' cmd/fsb/run.go > cmd/fsb/run.go.tmp
           mv cmd/fsb/run.go.tmp cmd/fsb/run.go
 
-          # Cambiar rutas /d/%s por /file/%s para que el template coincida
+          # Reemplazar rutas /d/%s por /file/%s
           grep -rl '/d/%s' . | xargs sed -i 's|/d/%s|/file/%s|g'
 
-          # Compilar el bot
           go build ./cmd/fsb/
           chmod +x fsb
 
@@ -154,10 +150,8 @@ EOF
 
       - name: Install Ngrok
         run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-          | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-          | sudo tee /etc/apt/sources.list.d/ngrok.list
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt update
           sudo apt install ngrok -y
 

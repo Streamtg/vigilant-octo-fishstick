@@ -1,97 +1,57 @@
-name: Go Build and Test with Ngrok and WebUI
+name: Deploy Micky Streamer Bot with Ngrok
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
-    strategy:
-      max-parallel: 1
-      fail-fast: false
-      matrix:
-        go: [1.23.4]
-        flag: [A]
-    env:
-      API_ID: ${{ secrets.API_ID }}
-      API_HASH: ${{ secrets.API_HASH }}
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
-      PORT: 8080
-      HOST: ready-unlikely-osprey.ngrok-free.app
-      NUM_JOBS: 900
-      JOB: ${{ matrix.go }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      - name: Install Go
+      - name: Clonar repositorio
         run: |
-          wget https://go.dev/dl/go${{ matrix.go }}.linux-amd64.tar.gz
-          sudo rm -rf /usr/local/go
-          sudo tar -C /usr/local -xzf go${{ matrix.go }}.linux-amd64.tar.gz
-          echo "/usr/local/go/bin" >> $GITHUB_PATH
+          git clone https://github.com/MrGhostsx/Micky-Streamer-Bot-2.0.git
+          cd Micky-Streamer-Bot-2.0
 
-      - name: Install Ngrok
+      - name: Instalar dependencias
         run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc > /dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install -y ngrok
+          sudo apt update
+          sudo apt install python3-pip unzip -y
+          pip3 install -U -r Micky-Streamer-Bot-2.0/requirements.txt
 
-      - name: Configure Ngrok
-        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-
-      - name: Clone and prepare TG-FileStreamBot with WebUI
+      - name: Crear archivo info.py
+        working-directory: ./Micky-Streamer-Bot-2.0
         run: |
-          git clone https://github.com/EverythingSuckz/TG-FileStreamBot
-          cd TG-FileStreamBot
+          cat <<EOF > info.py
+ADMINS = "${{ secrets.ADMINS }}"
+API_HASH = "${{ secrets.API_HASH }}"
+API_ID = ${{ secrets.API_ID }}
+AUTH_CHANNEL = "${{ secrets.AUTH_CHANNEL }}"
+BIN_CHANNEL = "${{ secrets.BIN_CHANNEL }}"
+BOT_TOKEN = "${{ secrets.BOT_TOKEN }}"
+BOT_USERNAME = "${{ secrets.BOT_USERNAME }}"
+DATABASE_NAME = "${{ secrets.DATABASE_NAME }}"
+DATABASE_URI = "${{ secrets.DATABASE_URI }}"
+FQDN = "${{ secrets.FQDN }}"
+LOG_CHANNEL = "${{ secrets.LOG_CHANNEL }}"
+OWNER_USERNAME = "${{ secrets.OWNER_USERNAME }}"
+PORT = int("${{ secrets.PORT }}")
+EOF
 
-          echo "package main" > webui.go
-          echo "" >> webui.go
-          echo "import (" >> webui.go
-          echo "  \"html/template\"" >> webui.go
-          echo "  \"log\"" >> webui.go
-          echo "  \"net/http\"" >> webui.go
-          echo "  \"os\"" >> webui.go
-          echo "  \"strings\"" >> webui.go
-          echo ")" >> webui.go
-          echo "" >> webui.go
-          echo "func iniciarWebUI() {" >> webui.go
-          echo "  const htmlTemplate = \`<html><body><h2>Archivo disponible</h2>{{if .IsMedia}}{{if .IsVideo}}<video controls autoplay><source src=\"{{.FileURL}}\"></video>{{else if .IsAudio}}<audio controls autoplay><source src=\"{{.FileURL}}\"></audio>{{end}}{{end}}<a href=\"{{.FileURL}}\">Descargar archivo</a></body></html>\`" >> webui.go
-          echo "  port := os.Getenv(\"PORT\")" >> webui.go
-          echo "  if port == \"\" { port = \"8080\" }" >> webui.go
-          echo "  http.HandleFunc(\"/file/\", func(w http.ResponseWriter, r *http.Request) {" >> webui.go
-          echo "    id := strings.TrimPrefix(r.URL.Path, \"/file/\")" >> webui.go
-          echo "    fileURL := \"https://ready-unlikely-osprey.ngrok-free.app/d/\" + id" >> webui.go
-          echo "    isVideo := strings.HasSuffix(fileURL, \".mp4\")" >> webui.go
-          echo "    isAudio := strings.HasSuffix(fileURL, \".mp3\")" >> webui.go
-          echo "    data := map[string]interface{}{ \"FileURL\": fileURL, \"IsMedia\": isVideo || isAudio, \"IsVideo\": isVideo, \"IsAudio\": isAudio }" >> webui.go
-          echo "    tmpl, _ := template.New(\"page\").Parse(htmlTemplate); tmpl.Execute(w, data)" >> webui.go
-          echo "  })" >> webui.go
-          echo "  log.Println(\"WebUI en puerto: \" + port)" >> webui.go
-          echo "  go http.ListenAndServe(\":\" + port, nil)" >> webui.go
-          echo "}" >> webui.go
-
-          awk '/func main\\(\\)/ { print; print \"  go iniciarWebUI()\"; next } 1' cmd/fsb/run.go > tmp && mv tmp cmd/fsb/run.go
-          grep -rl '/d/%s' . | xargs -r sed -i 's|/d/%s|/file/%s|g'
-          go build ./cmd/fsb/
-          chmod +x fsb
-
-      - name: Start TG-FileStreamBot
+      - name: Instalar ngrok y configurar
         run: |
-          cd TG-FileStreamBot
-          nohup ./fsb run > bot.log 2>&1 &
+          wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
+          tar -xvzf ngrok-v3-stable-linux-amd64.tgz
+          sudo mv ngrok /usr/local/bin
+          ngrok config add-authtoken ${{ secrets.NGROK_TOKEN }}
 
-      - name: Launch Ngrok and show tunnel URL
+      - name: Iniciar ngrok y el bot
+        working-directory: ./Micky-Streamer-Bot-2.0
         run: |
-          nohup ngrok http --url=ready-unlikely-osprey.ngrok-free.app 8080 & sleep 99999
-      D
+          echo "Iniciando ngrok..."
+          nohup ngrok http ${{ secrets.PORT }} --domain=ready-unlikely-osprey.ngrok-free.app > ngrok.log &
+          echo "Esperando 5 segundos para que ngrok levante el túnel..."
+          sleep 5
+          echo "Iniciando bot..."
+          nohup python3 bot.py > bot.log &
+          echo "Bot desplegado y corriendo con ngrok."

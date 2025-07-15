@@ -18,7 +18,7 @@ jobs:
           sudo apt install python3-pip unzip -y
           pip3 install -U -r Micky-Streamer-Bot-2.0/requirements.txt
 
-      - name: Crear archivo info.py
+      - name: Crear archivo info.py con los secrets
         working-directory: ./Micky-Streamer-Bot-2.0
         run: |
           echo "ADMINS = '${{ secrets.ADMINS }}'" > info.py
@@ -35,6 +35,11 @@ jobs:
           echo "OWNER_USERNAME = '${{ secrets.OWNER_USERNAME }}'" >> info.py
           echo "PORT = int('${{ secrets.PORT }}')" >> info.py
           echo "SESSION = '${{ secrets.SESSION }}'" >> info.py
+
+      - name: Parchear bot.py para evitar error de ON_HEROKU
+        working-directory: ./Micky-Streamer-Bot-2.0
+        run: |
+          sed -i '/^import /a ON_HEROKU = False' bot.py
 
       - name: Instalar Ngrok
         run: |

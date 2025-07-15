@@ -44,31 +44,32 @@ jobs:
         run: |
           sed -i '/^import /a ON_HEROKU = False' bot.py
 
-      - name: Parchear bot.py para manejar error de LOG_CHANNEL
+      - name: Parchear bot.py para manejar error de LOG_CHANNEL con awk
         working-directory: ./Micky-Streamer-Bot-2.0
         run: |
-          sed -i '/async def start()/,/^ *await Webtsbot.send_message(LOG_CHANNEL/ {
-            s/^ *await Webtsbot.send_message(LOG_CHANNEL.*/        if LOG_CHANNEL:\\
-            try:\\
-                await Webtsbot.send_message(LOG_CHANNEL, text=script.RESTART_TXT.format(today, time))\\
-            except Exception as e:\\
-                print(f"[⚠️ LOG_CHANNEL error] No se pudo enviar mensaje al canal: {e}")
-          }' bot.py
+          awk '
+            /await Webtsbot.send_message\(LOG_CHANNEL/ {
+              print "        if LOG_CHANNEL:"; 
+              print "            try:"; 
+              print "                await Webtsbot.send_message(LOG_CHANNEL, text=script.RESTART_TXT.format(today, time))"; 
+              print "            except Exception as e:"; 
+              print "                print(f\"[⚠️ LOG_CHANNEL error] No se pudo enviar mensaje al canal: {e}\")"; 
+              next 
+            } 
+            { print }
+          ' bot.py > bot.tmp && mv bot.tmp bot.py
 
       - name: Instalar Ngrok
         run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-            | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-            | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update
-          sudo apt install ngrok -y
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update && sudo apt install ngrok -y
 
       - name: Configurar Ngrok
         run: |
           ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Iniciar Ngrok con dominio personalizado
+      - name: Iniciar Ngrok en segundo plano
         run: |
           ngrok http --domain=ready-unlikely-osprey.ngrok-free.app ${{ secrets.PORT }} > ngrok.log &
           sleep 5

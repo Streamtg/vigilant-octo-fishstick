@@ -1,4 +1,4 @@
-name: Deploy Micky Streamer Bot with Ngrok (Persistent)
+name: Deploy Micky Streamer Bot with Ngrok
 
 on:
   workflow_dispatch:
@@ -12,10 +12,10 @@ jobs:
         run: |
           git clone https://github.com/MrGhostsx/Micky-Streamer-Bot-2.0.git
 
-      - name: Instalar dependencias
+      - name: Instalar dependencias y pip
         run: |
           sudo apt update
-          sudo apt install python3-pip unzip -y
+          sudo apt install -y python3-pip unzip
           pip3 install -U -r Micky-Streamer-Bot-2.0/requirements.txt
 
       - name: Crear archivo info.py con los secrets
@@ -36,10 +36,18 @@ jobs:
           echo "PORT = int('${{ secrets.PORT }}')" >> info.py
           echo "SESSION = '${{ secrets.SESSION }}'" >> info.py
 
-      - name: Parchear bot.py para evitar error de ON_HEROKU
+      - name: Parchear bot.py para definir ON_HEROKU = False
         working-directory: ./Micky-Streamer-Bot-2.0
         run: |
           sed -i '/^import /a ON_HEROKU = False' bot.py
+
+      - name: Parchear bot.py para manejar error de LOG_CHANNEL
+        working-directory: ./Micky-Streamer-Bot-2.0
+        run: |
+          sed -i '/await Webtsbot.send_message(LOG_CHANNEL/ {
+            i if LOG_CHANNEL:
+            c\    try:\n        await Webtsbot.send_message(LOG_CHANNEL, text=script.RESTART_TXT.format(today, time))\n    except Exception as e:\n        print(f"[⚠️ LOG_CHANNEL error] No se pudo enviar mensaje al canal: {e}")
+          }' bot.py
 
       - name: Instalar Ngrok
         run: |

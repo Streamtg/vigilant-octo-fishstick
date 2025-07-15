@@ -1,8 +1,8 @@
-name: Run webBridgeBot without Docker (direct Go + Ngrok)
+name: Run webBridgeBot via run.sh (No Docker)
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
+    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
   workflow_dispatch:
 
 jobs:
@@ -34,31 +34,28 @@ jobs:
           echo "/usr/local/go/bin" >> $GITHUB_PATH
           export PATH=$PATH:/usr/local/go/bin
 
-      - name: Compilar el bot en Go
+      - name: Compilar el bot
         working-directory: ./webbridgebot
         run: |
           go mod tidy
           go build -o webBridgeBot ./webBridgeBot
+          chmod +x run.sh
+          chmod +x webBridgeBot
 
       - name: Instalar Ngrok
         run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-          | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-          | sudo tee /etc/apt/sources.list.d/ngrok.list
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt update && sudo apt install ngrok -y
 
       - name: Configurar Ngrok
-        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+        run: ngrok config add-authtoken $NGROK_AUTH_TOKEN
 
       - name: Iniciar Ngrok (en segundo plano)
         run: |
-          ngrok http --domain=ready-unlikely-osprey.ngrok-free.app ${{ secrets.PORT }} > ngrok.log &
+          ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log &
           sleep 5
 
-      - name: Ejecutar el bot directamente
+      - name: Ejecutar run.sh (inicia el bot)
         working-directory: ./webbridgebot
-        run: |
-          chmod +x ./webBridgeBot
-          ./webBridgeBot run &
-          sleep 300 # Mantener el bot activo por 5 minutos mínimo
+        run: ./run.sh

@@ -38,9 +38,9 @@ jobs:
         working-directory: ./webbridgebot
         run: |
           go mod tidy
-          go build -o webBridgeBot ./webBridgeBot
+          go build -o internal
           chmod +x run.sh
-          chmod +x webBridgeBot
+          chmod +x internal
 
       - name: Instalar Ngrok
         run: |
@@ -57,5 +57,5 @@ jobs:
           sleep 5
 
       - name: Ejecutar run.sh (inicia el bot)
-        working-directory: ./webbridgebot
+        working-directory: ./internal
         run: ./run.sh

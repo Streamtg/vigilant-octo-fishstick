@@ -48,7 +48,7 @@ jobs:
       run: |
         git clone https://github.com/mshafiee/webbridgebot.git
         cd webbridgebot
-        go build ./cmd/webBridgeBot/
+        go build ./webBridgeBot
         chmod +x webBridgeBot
 
     - name: Run TG-FileStreamBot

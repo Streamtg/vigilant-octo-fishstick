@@ -58,4 +58,4 @@ jobs:
 
       - name: Ejecutar run.sh (inicia el bot)
         working-directory: ./internal
-        run: ./run.sh
+        run: ./internal run & 

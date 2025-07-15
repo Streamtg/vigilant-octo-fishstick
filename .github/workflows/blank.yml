@@ -34,6 +34,7 @@ jobs:
           echo "LOG_CHANNEL = '${{ secrets.LOG_CHANNEL }}'" >> info.py
           echo "OWNER_USERNAME = '${{ secrets.OWNER_USERNAME }}'" >> info.py
           echo "PORT = int('${{ secrets.PORT }}')" >> info.py
+          echo "SESSION = '${{ secrets.SESSION }}'" >> info.py
 
       - name: Instalar Ngrok
         run: |

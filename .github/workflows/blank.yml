@@ -1,9 +1,9 @@
-name: Build & Deploy WebBridgeBot with HTTP Streaming
+name: Build & Deploy Streamtg WebBridgeBot
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
+    - cron: '0 */6 * * *'  # Cada 6 horas
 
 jobs:
   deploy:
@@ -27,70 +27,16 @@ jobs:
         wget https://go.dev/dl/go1.21.7.linux-amd64.tar.gz
         sudo tar -C /usr/local -xzf go1.21.7.linux-amd64.tar.gz
         echo "/usr/local/go/bin" >> $GITHUB_PATH
-        export PATH=$PATH:/usr/local/go/bin
+        echo "PATH=/usr/local/go/bin:$PATH" >> $GITHUB_ENV
 
-    - name: Create media and templates directories
-      run: |
-        mkdir -p templates media
-        echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reproductor</title></head><body><h1>Reproduciendo</h1><video width="640" controls><source src="{{ .URL }}" type="video/mp4">Tu navegador no soporta video.</video></body></html>' > templates/player.html
-
-    - name: Add web.go server file (safe method)
-      run: |
-        mkdir -p tmp && cd tmp
-        echo 'package main
-
-import (
-    "fmt"
-    "html/template"
-    "net/http"
-    "os"
-)
-
-var (
-    PORT     = getEnv("PORT", "8080")
-    BASE_URL = getEnv("BASE_URL", "http://localhost:" + PORT)
-)
-
-func getEnv(key, fallback string) string {
-    val := os.Getenv(key)
-    if val == "" {
-        return fallback
-    }
-    return val
-}
-
-func StartWebServer() {
-    tmpl := template.Must(template.ParseFiles("templates/player.html"))
-
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        media := r.URL.Query().Get("media")
-        if media == "" {
-            http.Error(w, "Missing 'media' query", http.StatusBadRequest)
-            return
-        }
-        tmpl.Execute(w, struct{ URL string }{
-            URL: fmt.Sprintf("%s/stream/%s", BASE_URL, media),
-        })
-    })
-
-    http.Handle("/stream/", http.StripPrefix("/stream/", http.FileServer(http.Dir("media"))))
-
-    go func() {
-        fmt.Println("Web server listening on port:", PORT)
-        http.ListenAndServe(":"+PORT, nil)
-    }()
-}
-
-func main() {
-    StartWebServer()
-    select {} // Mantener el proceso vivo
-}' > ../web.go
+    - name: Clone Streamtg WebBridgeBot repo
+      run: git clone https://github.com/Streamtg/webbridgebot.git
 
     - name: Build WebBridgeBot
+      working-directory: webbridgebot
       run: |
-        go mod init webbridgebot
         go mod tidy
-        go build -o webBridgeBot .
+        go build -o webBridgeBot
 
     - name: Install Ngrok
       run: |
@@ -103,10 +49,11 @@ func main() {
 
     - name: Start Ngrok HTTP tunnel
       run: |
-        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
+        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app ${{ secrets.PORT }} > ngrok.log 2>&1 &
         sleep 5
 
-    - name: Start WebBridgeBot
+    - name: Run WebBridgeBot
+      working-directory: webbridgebot
       run: |
         chmod +x webBridgeBot
         ./webBridgeBot

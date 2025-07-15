@@ -37,7 +37,6 @@ jobs:
       - name: Compilar el bot
         working-directory: ./internal
         run: |
-          go mod tidy
           go build -o internal
           chmod +x internal
 

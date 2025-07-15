@@ -48,13 +48,13 @@ jobs:
       run: |
         git clone https://github.com/mshafiee/webbridgebot.git
         cd webbridgebot
-        go build -o webBridgeBot
+        go build ./cmd/webBridgeBot/
         chmod +x webBridgeBot
 
     - name: Run TG-FileStreamBot
       run: |
         cd webbridgebot
-        ./webbridgebot run & # Ejecuta el proceso en segundo plano
+        ./webBridgeBot run & # Ejecuta el proceso en segundo plano
 
     - name: Install Ngrok
       run: |

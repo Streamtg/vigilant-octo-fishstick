@@ -11,7 +11,6 @@ jobs:
       - name: Clonar repositorio
         run: |
           git clone https://github.com/MrGhostsx/Micky-Streamer-Bot-2.0.git
-          cd Micky-Streamer-Bot-2.0
 
       - name: Instalar dependencias
         run: |
@@ -19,39 +18,35 @@ jobs:
           sudo apt install python3-pip unzip -y
           pip3 install -U -r Micky-Streamer-Bot-2.0/requirements.txt
 
-      - name: Crear archivo info.py
+      - name: Crear archivo info.py con secrets
         working-directory: ./Micky-Streamer-Bot-2.0
         run: |
-          cat <<EOF > info.py
-ADMINS = "${{ secrets.ADMINS }}"
-API_HASH = "${{ secrets.API_HASH }}"
-API_ID = ${{ secrets.API_ID }}
-AUTH_CHANNEL = "${{ secrets.AUTH_CHANNEL }}"
-BIN_CHANNEL = "${{ secrets.BIN_CHANNEL }}"
-BOT_TOKEN = "${{ secrets.BOT_TOKEN }}"
-BOT_USERNAME = "${{ secrets.BOT_USERNAME }}"
-DATABASE_NAME = "${{ secrets.DATABASE_NAME }}"
-DATABASE_URI = "${{ secrets.DATABASE_URI }}"
-FQDN = "${{ secrets.FQDN }}"
-LOG_CHANNEL = "${{ secrets.LOG_CHANNEL }}"
-OWNER_USERNAME = "${{ secrets.OWNER_USERNAME }}"
-PORT = int("${{ secrets.PORT }}")
-EOF
+          echo "ADMINS = '${{ secrets.ADMINS }}'" > info.py
+          echo "API_HASH = '${{ secrets.API_HASH }}'" >> info.py
+          echo "API_ID = ${{ secrets.API_ID }}" >> info.py
+          echo "AUTH_CHANNEL = '${{ secrets.AUTH_CHANNEL }}'" >> info.py
+          echo "BIN_CHANNEL = '${{ secrets.BIN_CHANNEL }}'" >> info.py
+          echo "BOT_TOKEN = '${{ secrets.BOT_TOKEN }}'" >> info.py
+          echo "BOT_USERNAME = '${{ secrets.BOT_USERNAME }}'" >> info.py
+          echo "DATABASE_NAME = '${{ secrets.DATABASE_NAME }}'" >> info.py
+          echo "DATABASE_URI = '${{ secrets.DATABASE_URI }}'" >> info.py
+          echo "FQDN = '${{ secrets.FQDN }}'" >> info.py
+          echo "LOG_CHANNEL = '${{ secrets.LOG_CHANNEL }}'" >> info.py
+          echo "OWNER_USERNAME = '${{ secrets.OWNER_USERNAME }}'" >> info.py
+          echo "PORT = int('${{ secrets.PORT }}')" >> info.py
 
-      - name: Instalar ngrok y configurar
+      - name: Instalar ngrok
         run: |
           wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
           tar -xvzf ngrok-v3-stable-linux-amd64.tgz
           sudo mv ngrok /usr/local/bin
           ngrok config add-authtoken ${{ secrets.NGROK_TOKEN }}
 
-      - name: Iniciar ngrok y el bot
+      - name: Iniciar ngrok y ejecutar el bot
         working-directory: ./Micky-Streamer-Bot-2.0
         run: |
           echo "Iniciando ngrok..."
-          nohup ngrok http ${{ secrets.PORT }} --domain=ready-unlikely-osprey.ngrok-free.app > ngrok.log &
-          echo "Esperando 5 segundos para que ngrok levante el túnel..."
+          nohup ngrok http ${{ secrets.PORT }} --domain=ready-unlikely-osprey.ngrok-free.app > ../ngrok.log &
           sleep 5
-          echo "Iniciando bot..."
-          nohup python3 bot.py > bot.log &
-          echo "Bot desplegado y corriendo con ngrok."
+          echo "Iniciando el bot..."
+          nohup python3 bot.py > ../bot.log &

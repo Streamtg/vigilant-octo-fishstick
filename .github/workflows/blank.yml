@@ -1,12 +1,12 @@
-name: Run webBridgeBot via run.sh (No Docker)
+name: Ejecutar webbridgebot sin Docker
 
 on:
+  workflow_dispatch:     # Permitir ejecución manual
   schedule:
     - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
-  workflow_dispatch:
 
 jobs:
-  run-bot:
+  ejecutar-bot:
     runs-on: ubuntu-latest
     timeout-minutes: 360
 
@@ -21,39 +21,48 @@ jobs:
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-      - name: Clonar el repositorio del bot
-        run: |
-          git clone https://github.com/mshafiee/webbridgebot.git
-          cd webbridgebot
+    - name: Clonar el repositorio
+      run: |
+        git clone https://github.com/mshafiee/webbridgebot.git
+        cd webbridgebot
+        ls -al
 
-      - name: Instalar Go
-        run: |
-          wget https://go.dev/dl/go1.21.7.linux-amd64.tar.gz
-          sudo rm -rf /usr/local/go
-          sudo tar -C /usr/local -xzf go1.21.7.linux-amd64.tar.gz
-          echo "/usr/local/go/bin" >> $GITHUB_PATH
-          export PATH=$PATH:/usr/local/go/bin
+    - name: Instalar Go
+      run: |
+        wget https://go.dev/dl/go1.21.7.linux-amd64.tar.gz
+        sudo rm -rf /usr/local/go
+        sudo tar -C /usr/local -xzf go1.21.7.linux-amd64.tar.gz
+        echo "/usr/local/go/bin" >> $GITHUB_PATH
 
-      - name: Compilar el bot
-        working-directory: ./internal
-        run: |
-          go build -o internal
-          chmod +x internal
+    - name: Compilar el bot
+      working-directory: ./webbridgebot
+      run: |
+        go mod tidy
+        go build -o webBridgeBot .
+        chmod +x run.sh
+        chmod +x webBridgeBot
 
-      - name: Instalar Ngrok
-        run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install ngrok -y
+    - name: Verificar archivos generados
+      working-directory: ./webbridgebot
+      run: |
+        echo "Contenido de ./webbridgebot:"
+        ls -al
 
-      - name: Configurar Ngrok
-        run: ngrok config add-authtoken $NGROK_AUTH_TOKEN
+    - name: Instalar Ngrok
+      run: |
+        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+        sudo apt update && sudo apt install ngrok -y
 
-      - name: Iniciar Ngrok (en segundo plano)
-        run: |
-          ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log &
-          sleep 5
+    - name: Configurar Ngrok
+      run: |
+        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Ejecutar run.sh (inicia el bot)
-        working-directory: ./internal
-        run: ./internal run & 
+    - name: Iniciar Ngrok con dominio personalizado
+      run: |
+        ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log &
+        sleep 5
+
+    - name: Ejecutar bot desde run.sh
+      working-directory: ./webbridgebot
+      run: ./run.sh

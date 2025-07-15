@@ -1,68 +1,112 @@
-name: Ejecutar webbridgebot sin Docker
+name: Build & Deploy WebBridgeBot with HTTP Streaming
 
 on:
-  workflow_dispatch:     # Permitir ejecución manual
+  workflow_dispatch:
   schedule:
     - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
 
 jobs:
-  ejecutar-bot:
+  deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 360
-
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
       PORT: ${{ secrets.PORT }}
-      HOST: ${{ secrets.HOST }}
       BASE_URL: ${{ secrets.BASE_URL }}
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-    - name: Clonar el repositorio
-      run: |
-        git clone https://github.com/mshafiee/webbridgebot.git
-        cd webbridgebot
-        ls -al
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-    - name: Instalar Go
+    - name: Set up Go
       run: |
         wget https://go.dev/dl/go1.21.7.linux-amd64.tar.gz
-        sudo rm -rf /usr/local/go
         sudo tar -C /usr/local -xzf go1.21.7.linux-amd64.tar.gz
         echo "/usr/local/go/bin" >> $GITHUB_PATH
+        export PATH=$PATH:/usr/local/go/bin
 
-    - name: Compilar el bot
-      working-directory: ./webbridgebot
+    - name: Create media and templates directories
       run: |
+        mkdir -p templates media
+        echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reproductor</title></head><body><h1>Reproduciendo</h1><video width="640" controls><source src="{{ .URL }}" type="video/mp4">Tu navegador no soporta video.</video></body></html>' > templates/player.html
+
+    - name: Add web.go server file (safe method)
+      run: |
+        mkdir -p tmp && cd tmp
+        echo 'package main
+
+import (
+    "fmt"
+    "html/template"
+    "net/http"
+    "os"
+)
+
+var (
+    PORT     = getEnv("PORT", "8080")
+    BASE_URL = getEnv("BASE_URL", "http://localhost:" + PORT)
+)
+
+func getEnv(key, fallback string) string {
+    val := os.Getenv(key)
+    if val == "" {
+        return fallback
+    }
+    return val
+}
+
+func StartWebServer() {
+    tmpl := template.Must(template.ParseFiles("templates/player.html"))
+
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        media := r.URL.Query().Get("media")
+        if media == "" {
+            http.Error(w, "Missing 'media' query", http.StatusBadRequest)
+            return
+        }
+        tmpl.Execute(w, struct{ URL string }{
+            URL: fmt.Sprintf("%s/stream/%s", BASE_URL, media),
+        })
+    })
+
+    http.Handle("/stream/", http.StripPrefix("/stream/", http.FileServer(http.Dir("media"))))
+
+    go func() {
+        fmt.Println("Web server listening on port:", PORT)
+        http.ListenAndServe(":"+PORT, nil)
+    }()
+}
+
+func main() {
+    StartWebServer()
+    select {} // Mantener el proceso vivo
+}' > ../web.go
+
+    - name: Build WebBridgeBot
+      run: |
+        go mod init webbridgebot
         go mod tidy
         go build -o webBridgeBot .
-        chmod +x run.sh
-        chmod +x webBridgeBot
 
-    - name: Verificar archivos generados
-      working-directory: ./webbridgebot
-      run: |
-        echo "Contenido de ./webbridgebot:"
-        ls -al
-
-    - name: Instalar Ngrok
+    - name: Install Ngrok
       run: |
         curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
         echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
         sudo apt update && sudo apt install ngrok -y
 
-    - name: Configurar Ngrok
-      run: |
-        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+    - name: Configure Ngrok
+      run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-    - name: Iniciar Ngrok con dominio personalizado
+    - name: Start Ngrok HTTP tunnel
       run: |
-        ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log &
+        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
         sleep 5
 
-    - name: Ejecutar bot desde run.sh
-      working-directory: ./webbridgebot
-      run: ./run.sh
+    - name: Start WebBridgeBot
+      run: |
+        chmod +x webBridgeBot
+        ./webBridgeBot

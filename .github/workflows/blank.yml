@@ -39,7 +39,6 @@ jobs:
         run: |
           go mod tidy
           go build -o internal
-          chmod +x run.sh
           chmod +x internal
 
       - name: Instalar Ngrok

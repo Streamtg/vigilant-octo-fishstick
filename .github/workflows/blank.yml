@@ -57,4 +57,4 @@ jobs:
       - name: Ejecutar el bot
         working-directory: ./Micky-Streamer-Bot-2.0
         run: |
-          nohup python3 bot.py > ../bot.log &
+          python3 bot.py

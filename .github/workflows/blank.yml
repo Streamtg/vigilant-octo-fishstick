@@ -75,30 +75,28 @@ jobs:
         echo "        html = template % (file_name, file_name, file_url, size_or_type)" >> templates.py
         echo "    return html" >> templates.py
 
-    - name: Crear plantillas HTML (req.html y dl.html)
+    - name: Crear plantillas HTML
       working-directory: TG-FileStreamBot/WebStreamer/template
       run: |
         echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>%s</title></head><body><h1>%s</h1><tag src="%s" class="player"></tag></body></html>' > req.html
         echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>%s</title></head><body><h1>%s</h1><p><a href="%s" download>Click to download (%s)</a></p></body></html>' > dl.html
 
-    - name: Parchear routes.py para usar render_template
+    - name: Reemplazar handler /watch/{id} en routes.py solo con echo
       working-directory: TG-FileStreamBot/WebStreamer/server
       run: |
-        grep -q "from WebStreamer.server.templates import render_template" routes.py || \
-        sed -i '/from WebStreamer.utils.file_properties import get_file_ids/a from WebStreamer.server.templates import render_template' routes.py
-
-        sed -i '/@routes.get(\"\/watch\/{id}\")/,/return web.Response/ c\
-@routes.get(\"/watch/{id}\")\n\
-async def watch_handler(request):\n\
-    file_id = request.match_info.get(\"id\")\n\
-    from WebStreamer.bot import StreamBot\n\
-    from WebStreamer.vars import Var\n\
-    from WebStreamer.utils.file_properties import get_file_ids\n\
-    file_data = await get_file_ids(StreamBot, int(file_id))\n\
-    file_name = file_data.file_name\n\
-    file_url = f\"{Var.BASE_URL}/file/{file_id}\"\n\
-    html = await render_template(file_name, file_url)\n\
-    return web.Response(text=html, content_type=\"text/html\")' routes.py
+        echo "from WebStreamer.server.templates import render_template" >> routes.py
+        echo "" >> routes.py
+        echo "@routes.get(\"/watch/{id}\")" >> routes.py
+        echo "async def watch_handler(request):" >> routes.py
+        echo "    file_id = request.match_info.get(\"id\")" >> routes.py
+        echo "    from WebStreamer.bot import StreamBot" >> routes.py
+        echo "    from WebStreamer.vars import Var" >> routes.py
+        echo "    from WebStreamer.utils.file_properties import get_file_ids" >> routes.py
+        echo "    file_data = await get_file_ids(StreamBot, int(file_id))" >> routes.py
+        echo "    file_name = file_data.file_name" >> routes.py
+        echo "    file_url = f\"{Var.BASE_URL}/file/{file_id}\"" >> routes.py
+        echo "    html = await render_template(file_name, file_url)" >> routes.py
+        echo "    return web.Response(text=html, content_type=\"text/html\")" >> routes.py
 
     - name: Ejecutar el bot en segundo plano
       working-directory: TG-FileStreamBot

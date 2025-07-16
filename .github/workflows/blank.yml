@@ -51,7 +51,7 @@ jobs:
 
     - name: Start Ngrok HTTP tunnel
       run: |
-        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app 80 > ngrok.log 2>&1 &
+        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app 8080 > ngrok.log 2>&1 &
         sleep 5
 
     - name: Run WebBridgeBot

@@ -16,11 +16,10 @@ jobs:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       DATABASE_URI: ${{ secrets.DATABASE_URI }}
       BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-      OWNER_ID: ${{ secrets.OWNER_ID }}
-      ADMINS: ${{ secrets.ADMINS }}
       PORT: ${{ secrets.PORT }}
       BASE_URL: ${{ secrets.BASE_URL }}
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+      # OWNER_ID será inyectado directamente más abajo
 
     steps:
     - name: Clonar TG-FileStreamBot desde rama Old-v2.0
@@ -42,14 +41,16 @@ jobs:
 
     - name: Instalar Ngrok
       run: |
-        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+          | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+          | sudo tee /etc/apt/sources.list.d/ngrok.list
         sudo apt update && sudo apt install ngrok -y
 
     - name: Configurar Ngrok
       run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-    - name: Iniciar túnel Ngrok en ${{ secrets.PORT }}
+    - name: Iniciar túnel Ngrok
       run: |
         nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
         sleep 5
@@ -58,4 +59,5 @@ jobs:
       working-directory: TG-FileStreamBot
       run: |
         source ./venv/bin/activate
+        export OWNER_ID=834554042
         python3 -m WebStreamer

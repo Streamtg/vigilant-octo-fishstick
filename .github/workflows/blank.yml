@@ -108,4 +108,4 @@ jobs:
     - name: Iniciar Ngrok después del bot
       run: |
         sleep 10
-        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
+        ngrok http --domain=ready-unlikely-osprey.ngrok-free.app 8080

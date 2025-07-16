@@ -35,9 +35,8 @@ jobs:
       working-directory: TG-FileStreamBot
       run: |
         python3 -m venv venv
-        source ./venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
+        ./venv/bin/pip install --upgrade pip
+        ./venv/bin/pip install -r requirements.txt
 
     - name: Instalar Ngrok
       run: |
@@ -56,6 +55,5 @@ jobs:
     - name: Ejecutar TG-FileStreamBot
       working-directory: TG-FileStreamBot
       run: |
-        source ./venv/bin/activate
         export OWNER_ID=834554042
-        python3 -m WebStreamer
+        ./venv/bin/python3 -m WebStreamer

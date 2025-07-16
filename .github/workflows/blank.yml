@@ -19,7 +19,6 @@ jobs:
       OWNER_ID: ${{ secrets.OWNER_ID }}
       PORT: ${{ secrets.PORT }}
       FQDN: ${{ secrets.FQDN }}
-      WEB_SERVER_BIND_ADDRESS: "0.0.0.0"
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:

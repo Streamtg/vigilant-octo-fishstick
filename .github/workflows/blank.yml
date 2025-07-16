@@ -58,11 +58,4 @@ jobs:
       working-directory: webbridgebot
       run: |
         chmod +x webBridgeBot
-        ./webBridgeBot \
-          --api_id="${API_ID}" \
-          --api_hash="${API_HASH}" \
-          --bot_token="${BOT_TOKEN}" \
-          --base_url="${BASE_URL}" \
-          --port="${PORT}" \
-          --admins="${ADMINS}" \
-          --debug_mode=true
+        ./webBridgeBot

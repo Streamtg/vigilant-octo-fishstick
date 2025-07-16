@@ -1,9 +1,9 @@
-name: Deploy TG-FileStreamBot (Telethon-V2.0-Dead) with Ngrok and Patch Fix
+name: Deploy TG-FileStreamBot (Telethon-V2.0-Dead) with Ngrok and Patch
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
+    - cron: '0 */6 * * *'
 
 jobs:
   run-bot:
@@ -22,7 +22,7 @@ jobs:
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-    - name: Clonar el repositorio desde la rama Telethon-V2.0-Dead
+    - name: Clonar repositorio desde Telethon-V2.0-Dead
       run: |
         git clone --single-branch --branch Telethon-V2.0-Dead https://github.com/DeekshithSH/TG-FileStreamBot.git
 
@@ -39,10 +39,20 @@ jobs:
         ./venv/bin/pip install -r requirements.txt
         ./venv/bin/pip install pyrogram tgcrypto telethon
 
-    - name: Corregir error en bot_utils.py (event.sender_id)
+    - name: Corregir bot_utils.py usando echo (sin EOF)
       working-directory: TG-FileStreamBot
       run: |
-        sed -i 's/message.from_user.id/event.sender_id/g' WebStreamer/utils/bot_utils.py
+        echo "import logging" > WebStreamer/utils/bot_utils.py
+        echo "from WebStreamer.database.userdb import db" >> WebStreamer/utils/bot_utils.py
+        echo "" >> WebStreamer/utils/bot_utils.py
+        echo "async def is_user_exist(event):" >> WebStreamer/utils/bot_utils.py
+        echo "    if not bool(await db.get_user(event.sender_id)):" >> WebStreamer/utils/bot_utils.py
+        echo "        logging.info(f\"User {event.sender_id} no registrado\")" >> WebStreamer/utils/bot_utils.py
+        echo "        return False" >> WebStreamer/utils/bot_utils.py
+        echo "    return True" >> WebStreamer/utils/bot_utils.py
+        echo "" >> WebStreamer/utils/bot_utils.py
+        echo "async def validate_user(event, lang):" >> WebStreamer/utils/bot_utils.py
+        echo "    return await is_user_exist(event)" >> WebStreamer/utils/bot_utils.py
 
     - name: Instalar y configurar Ngrok
       run: |
@@ -51,7 +61,7 @@ jobs:
         sudo apt update && sudo apt install ngrok -y
         ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-    - name: Iniciar túnel Ngrok en segundo plano
+    - name: Iniciar túnel Ngrok
       run: |
         nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
         sleep 5

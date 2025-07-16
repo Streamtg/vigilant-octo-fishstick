@@ -3,7 +3,7 @@ name: Deploy TG-FileStreamBot Old-v2.0 with Ngrok
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
+    - cron: '0 */6 * * *'
 
 jobs:
   run-bot:
@@ -23,8 +23,7 @@ jobs:
 
     steps:
     - name: Clonar TG-FileStreamBot desde rama Old-v2.0
-      run: |
-        git clone --single-branch --branch Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
+      run: git clone --single-branch --branch Old-v2.0 https://github.com/DeekshithSH/TG-FileStreamBot.git
 
     - name: Instalar Python y entorno virtual
       run: |
@@ -48,7 +47,7 @@ jobs:
     - name: Configurar Ngrok
       run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-    - name: Crear módulo render_template
+    - name: Crear archivo templates.py
       working-directory: TG-FileStreamBot/WebStreamer/server
       run: |
         echo "import aiofiles" > templates.py
@@ -57,7 +56,6 @@ jobs:
         echo "async def render_template(file_name: str, file_url: str):" >> templates.py
         echo "    mime_type, _ = mimetypes.guess_type(file_name)" >> templates.py
         echo "    mime_type = mime_type or \"\"" >> templates.py
-        echo "" >> templates.py
         echo "    if mime_type.startswith('video/'):" >> templates.py
         echo "        template_path = 'WebStreamer/template/req.html'" >> templates.py
         echo "        tag = 'video'" >> templates.py
@@ -67,19 +65,40 @@ jobs:
         echo "    else:" >> templates.py
         echo "        template_path = 'WebStreamer/template/dl.html'" >> templates.py
         echo "        tag = None" >> templates.py
-        echo "" >> templates.py
         echo "    async with aiofiles.open(template_path, mode='r', encoding='utf-8') as f:" >> templates.py
         echo "        template = await f.read()" >> templates.py
-        echo "" >> templates.py
         echo "    if tag:" >> templates.py
-        echo "        template = template.replace('<tag src=\"%s\" class=\"player\" controls autoplay></tag>'," >> templates.py
-        echo "                                f'<{tag} src=\"{file_url}\" class=\"player\" controls autoplay></{tag}>')" >> templates.py
+        echo "        template = template.replace('<tag src=\"%s\" class=\"player\"></tag>', f'<{tag} src=\"{file_url}\" class=\"player\" controls autoplay></{tag}>')" >> templates.py
         echo "        html = template % (file_name, file_name, file_url)" >> templates.py
         echo "    else:" >> templates.py
         echo "        size_or_type = mime_type or \"File\"" >> templates.py
         echo "        html = template % (file_name, file_name, file_url, size_or_type)" >> templates.py
-        echo "" >> templates.py
         echo "    return html" >> templates.py
+
+    - name: Crear plantillas HTML (req.html y dl.html)
+      working-directory: TG-FileStreamBot/WebStreamer/template
+      run: |
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>%s</title></head><body><h1>%s</h1><tag src="%s" class="player"></tag></body></html>' > req.html
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>%s</title></head><body><h1>%s</h1><p><a href="%s" download>Click to download (%s)</a></p></body></html>' > dl.html
+
+    - name: Parchear routes.py para usar render_template
+      working-directory: TG-FileStreamBot/WebStreamer/server
+      run: |
+        grep -q "from WebStreamer.server.templates import render_template" routes.py || \
+        sed -i '/from WebStreamer.utils.file_properties import get_file_ids/a from WebStreamer.server.templates import render_template' routes.py
+
+        sed -i '/@routes.get(\"\/watch\/{id}\")/,/return web.Response/ c\
+@routes.get(\"/watch/{id}\")\n\
+async def watch_handler(request):\n\
+    file_id = request.match_info.get(\"id\")\n\
+    from WebStreamer.bot import StreamBot\n\
+    from WebStreamer.vars import Var\n\
+    from WebStreamer.utils.file_properties import get_file_ids\n\
+    file_data = await get_file_ids(StreamBot, int(file_id))\n\
+    file_name = file_data.file_name\n\
+    file_url = f\"{Var.BASE_URL}/file/{file_id}\"\n\
+    html = await render_template(file_name, file_url)\n\
+    return web.Response(text=html, content_type=\"text/html\")' routes.py
 
     - name: Ejecutar el bot en segundo plano
       working-directory: TG-FileStreamBot
@@ -88,7 +107,7 @@ jobs:
         export OWNER_ID=834554042
         nohup python3 -m WebStreamer > bot.log 2>&1 &
 
-    - name: Iniciar túnel Ngrok después del bot
+    - name: Iniciar Ngrok después del bot
       run: |
         sleep 10
-        ngrok http --domain=ready-unlikely-osprey.ngrok-free.app 8080
+        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &

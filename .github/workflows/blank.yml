@@ -1,9 +1,9 @@
-name: Deploy TG-FileStreamBot (Telethon-V2.0-Dead) with Ngrok and Venv
+name: Deploy TG-FileStreamBot (Telethon-V2.0-Dead) with Ngrok
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
 
 jobs:
   run-bot:
@@ -22,16 +22,16 @@ jobs:
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-    - name: Clonar repositorio desde rama Telethon-V2.0-Dead
+    - name: Clonar el repositorio desde la rama Telethon-V2.0-Dead
       run: |
         git clone --single-branch --branch Telethon-V2.0-Dead https://github.com/DeekshithSH/TG-FileStreamBot.git
 
-    - name: Instalar Python y entorno virtual
+    - name: Instalar Python y crear entorno virtual
       run: |
         sudo apt update
         sudo apt install python3 python3-pip python3-venv -y
 
-    - name: Crear entorno virtual e instalar dependencias
+    - name: Instalar dependencias en entorno virtual
       working-directory: TG-FileStreamBot
       run: |
         python3 -m venv venv
@@ -52,8 +52,8 @@ jobs:
         nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
         sleep 5
 
-    - name: Ejecutar TG-FileStreamBot
+    - name: Ejecutar TG-FileStreamBot con Python del venv
       working-directory: TG-FileStreamBot
       run: |
         export OWNER_ID=834554042
-        ./venv/bin/python3 -m WebStreamer
+        ./venv/bin/python -m WebStreamer

@@ -1,4 +1,4 @@
-name: Build & Deploy Streamtg WebBridgeBot
+name: Deploy Techify File-Stream-Bot with Ngrok
 
 on:
   workflow_dispatch:
@@ -14,31 +14,31 @@ jobs:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+      OWNER_ID: ${{ secrets.OWNER_ID }}
       PORT: ${{ secrets.PORT }}
-      BASE_URL: ${{ secrets.BASE_URL }}
-      ADMINS: ${{ secrets.ADMINS }}
+      FQDN: ${{ secrets.FQDN }}
+      WEB_SERVER_BIND_ADDRESS: "0.0.0.0"
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Set up Go
-      run: |
-        wget https://go.dev/dl/go1.21.7.linux-amd64.tar.gz
-        sudo tar -C /usr/local -xzf go1.21.7.linux-amd64.tar.gz
-        echo "/usr/local/go/bin" >> $GITHUB_PATH
-        echo "PATH=/usr/local/go/bin:$PATH" >> $GITHUB_ENV
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
 
-    - name: Clone Streamtg WebBridgeBot repo
-      run: git clone https://github.com/Streamtg/webbridgebot.git
+    - name: Clone File-Stream-Bot
+      run: git clone https://github.com/TechifyBots/File-Stream-Bot.git
 
-    - name: Build WebBridgeBot
-      working-directory: webbridgebot
+    - name: Install dependencies
+      working-directory: File-Stream-Bot
       run: |
-        go mod tidy
-        go build -o webBridgeBot main.go
+        python3 -m pip install --upgrade pip
+        pip3 install -r requirements.txt
 
     - name: Install Ngrok
       run: |
@@ -49,13 +49,13 @@ jobs:
     - name: Configure Ngrok
       run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-    - name: Start Ngrok HTTP tunnel
+    - name: Start Ngrok tunnel
       run: |
-        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app 8080 > ngrok.log 2>&1 &
+        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
         sleep 5
 
-    - name: Run WebBridgeBot
-      working-directory: webbridgebot
+    - name: Run File Stream Bot
+      working-directory: File-Stream-Bot
       run: |
-        chmod +x webBridgeBot
-        ./webBridgeBot
+        echo "Running File-Stream-Bot..."
+        python3 app.py

@@ -22,11 +22,11 @@ jobs:
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-    - name: Clonar el repositorio desde la rama Telethon-V2.0-Dead
+    - name: Clonar repositorio desde rama Telethon-V2.0-Dead
       run: |
         git clone --single-branch --branch Telethon-V2.0-Dead https://github.com/DeekshithSH/TG-FileStreamBot.git
 
-    - name: Instalar Python y crear entorno virtual
+    - name: Instalar Python y entorno virtual
       run: |
         sudo apt update
         sudo apt install python3 python3-pip python3-venv -y
@@ -37,6 +37,7 @@ jobs:
         python3 -m venv venv
         ./venv/bin/pip install --upgrade pip
         ./venv/bin/pip install -r requirements.txt
+        ./venv/bin/pip install pyrogram tgcrypto telethon
 
     - name: Instalar Ngrok
       run: |
@@ -52,7 +53,7 @@ jobs:
         nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
         sleep 5
 
-    - name: Ejecutar TG-FileStreamBot con Python del venv
+    - name: Ejecutar TG-FileStreamBot desde entorno virtual
       working-directory: TG-FileStreamBot
       run: |
         export OWNER_ID=834554042

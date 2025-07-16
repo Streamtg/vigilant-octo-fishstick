@@ -48,11 +48,6 @@ jobs:
     - name: Configurar Ngrok
       run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-    - name: Iniciar túnel Ngrok
-      run: |
-        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
-        sleep 5
-
     - name: Crear módulo render_template
       working-directory: TG-FileStreamBot/WebStreamer/server
       run: |
@@ -86,9 +81,14 @@ jobs:
         echo "" >> templates.py
         echo "    return html" >> templates.py
 
-    - name: Ejecutar TG-FileStreamBot
+    - name: Ejecutar el bot en segundo plano
       working-directory: TG-FileStreamBot
       run: |
         source ./venv/bin/activate
         export OWNER_ID=834554042
-        python3 -m WebStreamer
+        nohup python3 -m WebStreamer > bot.log 2>&1 &
+
+    - name: Iniciar túnel Ngrok después del bot
+      run: |
+        sleep 10
+        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &

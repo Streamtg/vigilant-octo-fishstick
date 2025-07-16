@@ -53,6 +53,39 @@ jobs:
         nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
         sleep 5
 
+    - name: Crear módulo render_template
+      working-directory: TG-FileStreamBot/WebStreamer/server
+      run: |
+        echo "import aiofiles" > templates.py
+        echo "import mimetypes" >> templates.py
+        echo "" >> templates.py
+        echo "async def render_template(file_name: str, file_url: str):" >> templates.py
+        echo "    mime_type, _ = mimetypes.guess_type(file_name)" >> templates.py
+        echo "    mime_type = mime_type or \"\"" >> templates.py
+        echo "" >> templates.py
+        echo "    if mime_type.startswith('video/'):" >> templates.py
+        echo "        template_path = 'WebStreamer/template/req.html'" >> templates.py
+        echo "        tag = 'video'" >> templates.py
+        echo "    elif mime_type.startswith('audio/'):" >> templates.py
+        echo "        template_path = 'WebStreamer/template/req.html'" >> templates.py
+        echo "        tag = 'audio'" >> templates.py
+        echo "    else:" >> templates.py
+        echo "        template_path = 'WebStreamer/template/dl.html'" >> templates.py
+        echo "        tag = None" >> templates.py
+        echo "" >> templates.py
+        echo "    async with aiofiles.open(template_path, mode='r', encoding='utf-8') as f:" >> templates.py
+        echo "        template = await f.read()" >> templates.py
+        echo "" >> templates.py
+        echo "    if tag:" >> templates.py
+        echo "        template = template.replace('<tag src=\"%s\" class=\"player\" controls autoplay></tag>'," >> templates.py
+        echo "                                f'<{tag} src=\"{file_url}\" class=\"player\" controls autoplay></{tag}>')" >> templates.py
+        echo "        html = template % (file_name, file_name, file_url)" >> templates.py
+        echo "    else:" >> templates.py
+        echo "        size_or_type = mime_type or \"File\"" >> templates.py
+        echo "        html = template % (file_name, file_name, file_url, size_or_type)" >> templates.py
+        echo "" >> templates.py
+        echo "    return html" >> templates.py
+
     - name: Ejecutar TG-FileStreamBot
       working-directory: TG-FileStreamBot
       run: |

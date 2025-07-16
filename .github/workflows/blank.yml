@@ -1,9 +1,9 @@
-name: Deploy TG-FileStreamBot (Telethon-V2.0-Dead) with Ngrok
+name: Deploy TG-FileStreamBot (Telethon-V2.0-Dead) with Ngrok and Venv
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Ejecutar cada 6 horas
+    - cron: '0 */6 * * *'
 
 jobs:
   run-bot:

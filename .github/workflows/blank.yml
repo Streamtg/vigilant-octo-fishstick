@@ -15,6 +15,7 @@ jobs:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
       PORT: ${{ secrets.PORT }}
+      ADMINS: ${{ secrets.ADMINS }}
       BASE_URL: ${{ secrets.BASE_URL }}
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 

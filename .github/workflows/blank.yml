@@ -46,14 +46,14 @@ jobs:
 
     - name: Clone and build TG-FileStreamBot
       run: |
-        git clone https://github.com/EverythingSuckz/TG-FileStreamBot
-        cd TG-FileStreamBot
+        git clone https://github.com/Streamtg/FileStreamBot
+        cd FileStreamBot
         go build ./cmd/fsb/
         chmod +x fsb
 
     - name: Run TG-FileStreamBot
       run: |
-        cd TG-FileStreamBot
+        cd FileStreamBot
         ./fsb run & # Ejecuta el proceso en segundo plano
 
     - name: Install Ngrok

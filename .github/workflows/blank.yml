@@ -3,154 +3,72 @@ name: Go Build and Test with Ngrok Setup
 on:
   schedule:
     - cron: '0 */6 * * *' # Ejecutar cada 6 horas
-  workflow_dispatch: # Ejecutar manualmente
+  workflow_dispatch: # Permitir disparar manualmente el flujo de trabajo
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 1
+      fail-fast: false
       matrix:
-        go: [1.21.0]
+        go: [1.23.4]
+        flag: [A]
     timeout-minutes: 360
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
-      NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-      PORT: 8080
+      PORT: ${{ secrets.PORT }}
+      HOST: ${{ secrets.HOST }}
+      NUM_JOBS: 900
+      JOB: ${{ matrix.go }}
 
     steps:
-      - name: Checkout TG-FileStreamBot
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: ${{ matrix.go }}
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
 
-      - name: Create templates/player.html
-        run: |
-          mkdir -p templates
-          echo '<!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-            <title>{{.Title}}</title>
-            <style>
-              body { font-family: Arial; background: #111; color: #fff; text-align: center; padding: 2em; }
-              video, audio { width: 90%; max-width: 900px; margin-top: 2em; border: 1px solid #444; border-radius: 12px; }
-            </style>
-          </head>
-          <body>
-            <h1>{{.Title}}</h1>
-            {{ if eq .MediaType "video" }}
-              <video controls autoplay>
-                <source src="{{.FileURL}}" type="{{.MimeType}}" />
-              </video>
-            {{ else if eq .MediaType "audio" }}
-              <audio controls autoplay>
-                <source src="{{.FileURL}}" type="{{.MimeType}}" />
-              </audio>
-            {{ else }}
-              <p><a href="{{.FileURL}}" download>Download {{.FileName}}</a></p>
-            {{ end }}
-          </body>
-          </html>' > templates/player.html
+    - name: Install Go
+      run: |
+        wget https://go.dev/dl/go${{ matrix.go }}.linux-amd64.tar.gz
+        sudo rm -rf /usr/local/go
+        sudo tar -C /usr/local -xzf go${{ matrix.go }}.linux-amd64.tar.gz
+        echo "export PATH=$PATH:/usr/local/go/bin" >> $GITHUB_ENV
 
-      - name: Create internal/server/handler.go
-        run: |
-          mkdir -p internal/server
-          echo 'package server
+    - name: Verify Go installation
+      run: go version
 
-          import (
-            "html/template"
-            "net/http"
-            "path/filepath"
-            "strings"
-          )
+    - name: Clone and build TG-FileStreamBot
+      run: |
+        git clone https://github.com/EverythingSuckz/TG-FileStreamBot
+        cd TG-FileStreamBot
+        go build ./cmd/fsb/
+        chmod +x fsb
 
-          type TemplateData struct {
-            Title     string
-            FileName  string
-            FileURL   string
-            MimeType  string
-            MediaType string
-          }
+    - name: Run TG-FileStreamBot
+      run: |
+        cd TG-FileStreamBot
+        ./fsb run & # Ejecuta el proceso en segundo plano
 
-          func ServeTemplate(w http.ResponseWriter, r *http.Request) {
-            id := r.URL.Query().Get("id")
-            hash := r.URL.Query().Get("hash")
+    - name: Install Ngrok
+      run: |
+        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+        && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+        | sudo tee /etc/apt/sources.list.d/ngrok.list \
+        && sudo apt update \
+        && sudo apt install ngrok
 
-            fileName := "demo.mp4"
-            fileURL := "https://example.com/files/demo.mp4"
-            mimeType := "video/mp4"
+    - name: Configure Ngrok
+      run: |
+        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
-            tmplPath := filepath.Join("templates", "player.html")
-            tmpl, err := template.ParseFiles(tmplPath)
-            if err != nil {
-              http.Error(w, "Template error", http.StatusInternalServerError)
-              return
-            }
-
-            mediaType := "other"
-            if strings.HasPrefix(mimeType, "video") {
-              mediaType = "video"
-            } else if strings.HasPrefix(mimeType, "audio") {
-              mediaType = "audio"
-            }
-
-            data := TemplateData{
-              Title:     "Watch " + fileName,
-              FileName:  fileName,
-              FileURL:   fileURL,
-              MimeType:  mimeType,
-              MediaType: mediaType,
-            }
-
-            err = tmpl.Execute(w, data)
-            if err != nil {
-              http.Error(w, "Render error", http.StatusInternalServerError)
-            }
-          }' > internal/server/handler.go
-
-      - name: Create cmd/fsb/main.go
-        run: |
-          mkdir -p cmd/fsb
-          echo 'package main
-
-          import (
-            "log"
-            "net/http"
-            "TG-FileStreamBot/internal/server"
-          )
-
-          func main() {
-            http.HandleFunc("/watch", server.ServeTemplate)
-            log.Println("Server running at :8080")
-            log.Fatal(http.ListenAndServe(":8080", nil))
-          }' > cmd/fsb/main.go
-
-      - name: Build Go project
-        run: go build -o fsb ./cmd/fsb
-
-      - name: Run Go server in background
-        run: nohup ./fsb &
-
-      - name: Install Ngrok
-        run: |
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-            | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-            | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update
-          sudo apt install ngrok -y
-
-      - name: Configure Ngrok
-        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-
-      - name: Start Ngrok Tunnel
-        run: nohup ngrok http --hostname=ready-unlikely-osprey.ngrok-free.app 8080 > ngrok.log &
-
-      - name: Wait for Ngrok tunnel to be live
-        run: sleep 300
+    - name: Start Ngrok HTTP with custom URL
+      run: |
+        ngrok http --url=ready-unlikely-osprey.ngrok-free.app 8080

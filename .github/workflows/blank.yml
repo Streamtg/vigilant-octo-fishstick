@@ -2,7 +2,7 @@ name: Go Build and Test with Ngrok Setup
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Ejecutar cada 6 horas
+    - cron: '0 */* * * *' # Ejecutar cada 6 horas
   workflow_dispatch: # Permitir disparar manualmente el flujo de trabajo
 
 jobs:

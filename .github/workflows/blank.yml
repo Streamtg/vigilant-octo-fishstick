@@ -1,76 +1,156 @@
-name: Deploy TG-FileStreamBot (Telethon-V2.0-Dead) with Ngrok and Safe Fix
+name: Go Build and Test with Ngrok Setup
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *' # Ejecutar cada 6 horas
+  workflow_dispatch: # Ejecutar manualmente
 
 jobs:
-  run-bot:
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [1.21.0]
     timeout-minutes: 360
-
     env:
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      DATABASE_URI: ${{ secrets.DATABASE_URI }}
-      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-      PORT: ${{ secrets.PORT }}
-      BASE_URL: ${{ secrets.BASE_URL }}
-      FQDN: ready-unlikely-osprey.ngrok-free.app
+      LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+      PORT: 8080
 
     steps:
-    - name: Clonar repositorio desde Telethon-V2.0-Dead
-      run: |
-        git clone --single-branch --branch Telethon-V2.0-Dead https://github.com/DeekshithSH/TG-FileStreamBot.git
+      - name: Checkout TG-FileStreamBot
+        uses: actions/checkout@v2
 
-    - name: Instalar Python y entorno virtual
-      run: |
-        sudo apt update
-        sudo apt install python3 python3-pip python3-venv -y
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go }}
 
-    - name: Instalar dependencias en entorno virtual
-      working-directory: TG-FileStreamBot
-      run: |
-        python3 -m venv venv
-        ./venv/bin/pip install --upgrade pip
-        ./venv/bin/pip install -r requirements.txt
-        ./venv/bin/pip install pyrogram tgcrypto telethon
+      - name: Create templates/player.html
+        run: |
+          mkdir -p templates
+          echo '<!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <title>{{.Title}}</title>
+            <style>
+              body { font-family: Arial; background: #111; color: #fff; text-align: center; padding: 2em; }
+              video, audio { width: 90%; max-width: 900px; margin-top: 2em; border: 1px solid #444; border-radius: 12px; }
+            </style>
+          </head>
+          <body>
+            <h1>{{.Title}}</h1>
+            {{ if eq .MediaType "video" }}
+              <video controls autoplay>
+                <source src="{{.FileURL}}" type="{{.MimeType}}" />
+              </video>
+            {{ else if eq .MediaType "audio" }}
+              <audio controls autoplay>
+                <source src="{{.FileURL}}" type="{{.MimeType}}" />
+              </audio>
+            {{ else }}
+              <p><a href="{{.FileURL}}" download>Download {{.FileName}}</a></p>
+            {{ end }}
+          </body>
+          </html>' > templates/player.html
 
-    - name: Corregir bot_utils.py usando echo (con control de errores)
-      working-directory: TG-FileStreamBot
-      run: |
-        echo "import logging" > WebStreamer/utils/bot_utils.py
-        echo "async def is_user_exist(event):" >> WebStreamer/utils/bot_utils.py
-        echo "    try:" >> WebStreamer/utils/bot_utils.py
-        echo "        from WebStreamer.database.userdb import db" >> WebStreamer/utils/bot_utils.py
-        echo "        if not bool(await db.get_user(event.sender_id)):" >> WebStreamer/utils/bot_utils.py
-        echo "            logging.info(f'User {event.sender_id} no registrado')" >> WebStreamer/utils/bot_utils.py
-        echo "            return False" >> WebStreamer/utils/bot_utils.py
-        echo "        return True" >> WebStreamer/utils/bot_utils.py
-        echo "    except ModuleNotFoundError as e:" >> WebStreamer/utils/bot_utils.py
-        echo "        logging.error(f'Módulo db no encontrado: {e}')" >> WebStreamer/utils/bot_utils.py
-        echo "        return True" >> WebStreamer/utils/bot_utils.py
-        echo "" >> WebStreamer/utils/bot_utils.py
-        echo "async def validate_user(event, lang):" >> WebStreamer/utils/bot_utils.py
-        echo "    return await is_user_exist(event)" >> WebStreamer/utils/bot_utils.py
+      - name: Create internal/server/handler.go
+        run: |
+          mkdir -p internal/server
+          echo 'package server
 
-    - name: Instalar y configurar Ngrok
-      run: |
-        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-        sudo apt update && sudo apt install ngrok -y
-        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+          import (
+            "html/template"
+            "net/http"
+            "path/filepath"
+            "strings"
+          )
 
-    - name: Iniciar túnel Ngrok
-      run: |
-        nohup ngrok http --domain=ready-unlikely-osprey.ngrok-free.app $PORT > ngrok.log 2>&1 &
-        sleep 5
+          type TemplateData struct {
+            Title     string
+            FileName  string
+            FileURL   string
+            MimeType  string
+            MediaType string
+          }
 
-    - name: Ejecutar TG-FileStreamBot
-      working-directory: TG-FileStreamBot
-      run: |
-        export OWNER_ID=834554042
-        ./venv/bin/python -m WebStreamer
+          func ServeTemplate(w http.ResponseWriter, r *http.Request) {
+            id := r.URL.Query().Get("id")
+            hash := r.URL.Query().Get("hash")
+
+            fileName := "demo.mp4"
+            fileURL := "https://example.com/files/demo.mp4"
+            mimeType := "video/mp4"
+
+            tmplPath := filepath.Join("templates", "player.html")
+            tmpl, err := template.ParseFiles(tmplPath)
+            if err != nil {
+              http.Error(w, "Template error", http.StatusInternalServerError)
+              return
+            }
+
+            mediaType := "other"
+            if strings.HasPrefix(mimeType, "video") {
+              mediaType = "video"
+            } else if strings.HasPrefix(mimeType, "audio") {
+              mediaType = "audio"
+            }
+
+            data := TemplateData{
+              Title:     "Watch " + fileName,
+              FileName:  fileName,
+              FileURL:   fileURL,
+              MimeType:  mimeType,
+              MediaType: mediaType,
+            }
+
+            err = tmpl.Execute(w, data)
+            if err != nil {
+              http.Error(w, "Render error", http.StatusInternalServerError)
+            }
+          }' > internal/server/handler.go
+
+      - name: Create cmd/fsb/main.go
+        run: |
+          mkdir -p cmd/fsb
+          echo 'package main
+
+          import (
+            "log"
+            "net/http"
+            "TG-FileStreamBot/internal/server"
+          )
+
+          func main() {
+            http.HandleFunc("/watch", server.ServeTemplate)
+            log.Println("Server running at :8080")
+            log.Fatal(http.ListenAndServe(":8080", nil))
+          }' > cmd/fsb/main.go
+
+      - name: Build Go project
+        run: go build -o fsb ./cmd/fsb
+
+      - name: Run Go server in background
+        run: nohup ./fsb &
+
+      - name: Install Ngrok
+        run: |
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+            | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+            | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update
+          sudo apt install ngrok -y
+
+      - name: Configure Ngrok
+        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+
+      - name: Start Ngrok Tunnel
+        run: nohup ngrok http --hostname=ready-unlikely-osprey.ngrok-free.app 8080 > ngrok.log &
+
+      - name: Wait for Ngrok tunnel to be live
+        run: sleep 300

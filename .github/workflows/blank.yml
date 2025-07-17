@@ -54,7 +54,7 @@ jobs:
     - name: Run TG-FileStreamBot
       run: |
         cd FileStreamBot
-        ./fsb run & # Ejecuta el proceso en segundo plano
+        ./fsb run --port 8080 & # Ejecuta el proceso en segundo plano
 
     - name: Install Ngrok
       run: |

@@ -43,7 +43,6 @@ jobs:
         FQDN: ${{ secrets.FQDN }}
         HAS_SSL: ${{ secrets.HAS_SSL }}
       run: |
-        source venv/bin/activate
-        nohup python3 -m WebStreamer &     # Ejecuta el bot en segundo plano
+        python3 -m WebStreamer &     # Ejecuta el bot en segundo plano
         sleep 5                             # Espera a que el servidor levante
         ngrok http $PORT                    # Lanza Ngrok redirigiendo al puerto

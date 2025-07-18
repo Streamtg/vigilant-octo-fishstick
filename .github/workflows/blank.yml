@@ -1,54 +1,35 @@
-name: Clone & Run Voov Bot with Ngrok
+name: Run Telegram Bot
 
 on:
   workflow_dispatch:
+  push:
 
 jobs:
-  run-voov:
+  run-bot:
     runs-on: ubuntu-latest
 
+    env:
+      API_ID: ${{ secrets.API_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+      PORT: ${{ secrets.PORT }}
+      FQDN: ${{ secrets.FQDN }}
+      HAS_SSL: ${{ secrets.HAS_SSL }}
+
     steps:
-    - name: 📥 Clonar repositorio Streamtg/voov
-      run: |
-        git clone https://github.com/Streamtg/voov.git
+      - name: Instalar dependencias del sistema
+        run: |
+          sudo apt update
+          sudo apt install -y python3-venv git
 
-    - name: 🔧 Ejecutar entorno virtual, instalar dependencias, lanzar bot y ngrok
-      working-directory: ./voov
-      env:
-        API_ID: ${{ secrets.API_ID }}
-        API_HASH: ${{ secrets.API_HASH }}
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-        PORT: ${{ secrets.PORT }}
-        FQDN: ${{ secrets.FQDN }}
-        HAS_SSL: ${{ secrets.HAS_SSL }}
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-      shell: bash
-      run: |
-        echo "[🔧] Instalando Python y dependencias del sistema..."
-        sudo apt update
-        sudo apt install -y python3 python3-venv curl
-
-        echo "[🐍] Creando entorno virtual..."
-        python3 -m venv venv
-        source venv/bin/activate
-
-        echo "[📦] Instalando dependencias del bot..."
-        pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install python-dotenv
-
-        echo "[🌐] Instalando Ngrok..."
-        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-        sudo apt update && sudo apt install -y ngrok
-        ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
-
-        echo "[🚀] Ejecutando el bot Voov en segundo plano..."
-        nohup python3 -m WebStreamer > bot.log 2>&1 &
-
-        echo "[🌍] Esperando 10 segundos para que el bot levante..."
-        sleep 10
-
-        echo "[🔗] Iniciando túnel Ngrok en el puerto $PORT..."
-        ngrok http $PORT
+      - name: Clonar el repositorio 'voov'
+        run: |
+          git clone https://github.com/Streamtg/voov
+          cd voov
+          virtualenv -p /usr/bin/python3 venv
+          . ./venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          python3 -m WebStreamer &
+          sleep infinity

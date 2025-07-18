@@ -1,29 +1,27 @@
-name: Run Telegram Bot
+name: Deploy Voov Bot
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
 
 jobs:
-  run-bot:
+  build:
     runs-on: ubuntu-latest
 
-    env:
-      API_ID: ${{ secrets.API_ID }}
-      API_HASH: ${{ secrets.API_HASH }}
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-      PORT: ${{ secrets.PORT }}
-      FQDN: ${{ secrets.FQDN }}
-      HAS_SSL: ${{ secrets.HAS_SSL }}
-
     steps:
-      - name: Clonar el repositorio 'voov' y ejecutar el bot
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Instalar dependencias del sistema
+        run: |
+          sudo apt update
+          sudo apt install -y python3 python3-pip python3-venv git
+
+      - name: Clonar y ejecutar Voov Bot
         run: |
           git clone https://github.com/Streamtg/voov
           cd voov
-          sudo apt update
-          sudo apt install -y python3-venv python3-pip
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          python3 -m WebStreamer
+          python3 -m venv venv && . venv/bin/activate && pip install -r requirements.txt
+          python3 -m WebStreamer &

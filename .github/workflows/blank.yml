@@ -12,28 +12,7 @@ jobs:
       run: |
         git clone https://github.com/Streamtg/voov.git
 
-    - name: 🐍 Configurar Python y entorno virtual
-      working-directory: ./voov
-      run: |
-        sudo apt update
-        sudo apt install -y python3 python3-venv
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install python-dotenv  # 🔧 Solución a 'ModuleNotFoundError'
-
-    - name: 🔐 Instalar y configurar Ngrok
-      run: |
-        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-        | sudo tee /etc/apt/sources.list.d/ngrok.list
-        sudo apt update
-        sudo apt install ngrok
-        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-
-    - name: 🚀 Ejecutar bot en segundo plano y levantar Ngrok
+    - name: 🔧 Ejecutar entorno virtual, instalar dependencias, lanzar bot y ngrok
       working-directory: ./voov
       env:
         API_ID: ${{ secrets.API_ID }}
@@ -43,7 +22,33 @@ jobs:
         PORT: ${{ secrets.PORT }}
         FQDN: ${{ secrets.FQDN }}
         HAS_SSL: ${{ secrets.HAS_SSL }}
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+      shell: bash
       run: |
-        python3 -m WebStreamer &
-        sleep 10  # espera a que el bot levante el puerto
+        echo "[🔧] Instalando Python y dependencias del sistema..."
+        sudo apt update
+        sudo apt install -y python3 python3-venv curl
+
+        echo "[🐍] Creando entorno virtual..."
+        python3 -m venv venv
+        source venv/bin/activate
+
+        echo "[📦] Instalando dependencias del bot..."
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install python-dotenv
+
+        echo "[🌐] Instalando Ngrok..."
+        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+        sudo apt update && sudo apt install -y ngrok
+        ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
+
+        echo "[🚀] Ejecutando el bot Voov en segundo plano..."
+        nohup python3 -m WebStreamer > bot.log 2>&1 &
+
+        echo "[🌍] Esperando 10 segundos para que el bot levante..."
+        sleep 10
+
+        echo "[🔗] Iniciando túnel Ngrok en el puerto $PORT..."
         ngrok http $PORT

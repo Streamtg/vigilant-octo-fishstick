@@ -26,11 +26,4 @@ jobs:
           python3 -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
-          python3 -m WebStreamer &
-          
-      - name: Instalar Ngrok y exponer puerto 8080
-        run: |
-          wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip
-          unzip ngrok-stable-linux-amd64.zip
-          ./ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-          ./ngrok http 8080
+          python3 -m WebStreamer

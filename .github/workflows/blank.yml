@@ -18,16 +18,13 @@ jobs:
       HAS_SSL: ${{ secrets.HAS_SSL }}
 
     steps:
-      - name: Instalar dependencias del sistema
-        run: |
-          sudo apt update
-          sudo apt install -y python3-venv python3-pip
-          pip3 install virtualenv
-
       - name: Clonar el repositorio 'voov' y ejecutar el bot
         run: |
           git clone https://github.com/Streamtg/voov
           cd voov
+          sudo apt update
+          sudo apt install -y python3-venv python3-pip
+          pip3 install virtualenv
           virtualenv -p /usr/bin/python3 venv
           . ./venv/bin/activate
           pip install --upgrade pip

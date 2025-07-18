@@ -33,5 +33,4 @@ jobs:
           wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip
           unzip ngrok-stable-linux-amd64.zip
           ./ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-          ./ngrok http 8080 &
-          sleep 15
+          ./ngrok http 8080

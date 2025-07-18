@@ -14,9 +14,21 @@ jobs:
       API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       OWNER_ID: ${{ secrets.OWNER_ID }}
-      BASE_URL: ${{ secrets.BASE_URL }}
+      PORT: ${{ secrets.PORT }}
+      FQDN: ${{ secrets.FQDN }}
+      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+      HAS_SSL: ${{ secrets.HAS_SSL }}
 
     steps:
+      - name: Crear archivo .env
+        run: |
+          echo "API_ID=${{ secrets.API_ID }}" > voov/.env
+          echo "API_HASH=${{ secrets.API_HASH }}" >> voov/.env
+          echo "BIN_CHANNEL=${{ secrets.BIN_CHANNEL }}" >> voov/.env
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> voov/.env
+          echo "PORT=${{ secrets.PORT }}" >> voov/.env
+          echo "FQDN=${{ secrets.FQDN }}" >> voov/.env
+          echo "HAS_SSL=${{ secrets.HAS_SSL }}" >> voov/.env
       - name: Clonar repositorio
         run: |
           git clone https://github.com/Streamtg/voov

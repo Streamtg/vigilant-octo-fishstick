@@ -1,27 +1,37 @@
-name: Deploy Voov Bot
+name: Python Bot with Ngrok Setup
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      API_ID: ${{ secrets.API_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      OWNER_ID: ${{ secrets.OWNER_ID }}
+      BASE_URL: ${{ secrets.BASE_URL }}
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Instalar dependencias del sistema
-        run: |
-          sudo apt update
-          sudo apt install -y python3 python3-pip python3-venv git
-
-      - name: Clonar y ejecutar Voov Bot
+      - name: Clonar repositorio
         run: |
           git clone https://github.com/Streamtg/voov
           cd voov
-          python3 -m venv venv && . venv/bin/activate && pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y python3-venv
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
           python3 -m WebStreamer &
+          
+      - name: Instalar Ngrok y exponer puerto 8080
+        run: |
+          wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip
+          unzip ngrok-stable-linux-amd64.zip
+          ./ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+          ./ngrok http 8080 &
+          sleep 15

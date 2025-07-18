@@ -1,61 +1,45 @@
-name: Go Build and Test with Ngrok Setup
+
+name: Clone & Run Voov Bot
 
 on:
-  schedule:
-    - cron: '0 */* * * *' # Ejecutar cada 6 horas
-  workflow_dispatch: # Permitir disparar manualmente el flujo de trabajo
+  workflow_dispatch:      # Ejecutable manualmente desde la pestaña "Actions"
 
 jobs:
-  build:
+  run-voov:
+    name: Ejecutar Voov desde repositorio remoto
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 1
-      fail-fast: false
-      matrix:
-        go: [1.23.4]
-        flag: [A]
-    timeout-minutes: 360
-    env:
-      API_ID: ${{ secrets.API_ID }}
-      API_HASH: ${{ secrets.API_HASH }}
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      LOG_CHANNEL: ${{ secrets.LOG_CHANNEL }}
-      PORT: ${{ secrets.PORT }}
-      HOST: ${{ secrets.HOST }}
-      NUM_JOBS: 900
-      JOB: ${{ matrix.go }}
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-
-    - name: Install Go
+    - name: 📥 Clonar repositorio Streamtg/voov
       run: |
-        wget https://go.dev/dl/go${{ matrix.go }}.linux-amd64.tar.gz
-        sudo rm -rf /usr/local/go
-        sudo tar -C /usr/local -xzf go${{ matrix.go }}.linux-amd64.tar.gz
-        echo "export PATH=$PATH:/usr/local/go/bin" >> $GITHUB_ENV
+        git clone https://github.com/Streamtg/voov.git
+        cd voov
+        ls -la
 
-    - name: Verify Go installation
-      run: go version
-
-    - name: Clone and build TG-FileStreamBot
+    - name: 🐍 Configurar Python y entorno virtual
+      working-directory: ./voov
       run: |
-        git clone https://github.com/Streamtg/FileStreamBot
-        cd FileStreamBot
-        go build ./cmd/fsb/
-        chmod +x fsb
+        sudo apt update
+        sudo apt install -y python3 python3-venv
+        python3 -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
 
-    - name: Run TG-FileStreamBot
+    - name: 🚀 Ejecutar bot WebStreamer
+      working-directory: ./voov
+      env:
+        API_ID: ${{ secrets.API_ID }}
+        API_HASH: ${{ secrets.API_HASH }}
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
+        PORT: ${{ secrets.PORT }}
+        FQDN: ${{ secrets.FQDN }}
+        HAS_SSL: ${{ secrets.HAS_SSL }}
       run: |
-        cd FileStreamBot
-        ./fsb run & # Ejecuta el proceso en segundo plano
-
+        source venv/bin/activate
+        python3 -m WebStreamer
+        
     - name: Install Ngrok
       run: |
         curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \

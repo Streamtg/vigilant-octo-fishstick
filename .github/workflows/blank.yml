@@ -44,7 +44,6 @@ jobs:
         FQDN: ${{ secrets.FQDN }}
         HAS_SSL: ${{ secrets.HAS_SSL }}
       run: |
-        source venv/bin/activate
         python3 -m WebStreamer &
         sleep 10  # espera a que el bot levante el puerto
         ngrok http $PORT

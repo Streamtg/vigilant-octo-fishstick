@@ -24,4 +24,4 @@ jobs:
           git clone https://github.com/X-Gorn/X-URL-Uploader.git
           cd X-URL-Uploader
           pip install -U -r requirements.txt
-          pythom3 -m Bot
+          pythom -m Bot

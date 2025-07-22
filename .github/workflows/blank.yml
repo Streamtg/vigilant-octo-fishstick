@@ -1,30 +1,37 @@
-name: Python Bot with Ngrok Setup
+name: Ejecutar bot X-URL-Uploader
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  run-bot:
     runs-on: ubuntu-latest
 
     env:
-      API_ID: ${{ secrets.API_ID }}
-      API_HASH: ${{ secrets.API_HASH }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      APP_ID: ${{ secrets.APP_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
       OWNER_ID: ${{ secrets.OWNER_ID }}
-      PORT: ${{ secrets.PORT }}
-      FQDN: ${{ secrets.FQDN }}
-      BIN_CHANNEL: ${{ secrets.BIN_CHANNEL }}
-      HAS_SSL: ${{ secrets.HAS_SSL }}
+      AUTH_USERS: ${{ secrets.AUTH_USERS }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
-      - name: Clonar repositorio
+      - name: Clonar repositorio actual
+        uses: actions/checkout@v3
+
+      - name: Clonar repo original X-Gorn/X-URL-Uploader
+        run: git clone https://github.com/X-Gorn/X-URL-Uploader.git
+
+      - name: Crear entorno virtual e instalar dependencias
         run: |
-          git clone https://github.com/Streamtg/voov
-          cd voov
-          sudo apt-get update
-          sudo apt-get install -y python3-venv
-          pip install -r requirements.txt
-          python3 -m WebStreamer
+          python3 -m venv ./venv
+          . ./venv/bin/activate
+          python -m pip install -U pip
+          pip install -U -r X-URL-Uploader/requirements.txt
+
+      - name: Ejecutar el bot
+        run: |
+          . ./venv/bin/activate
+          python X-URL-Uploader/bot.py

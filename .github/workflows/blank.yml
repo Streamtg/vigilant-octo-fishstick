@@ -13,7 +13,7 @@ jobs:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
-      OWNER_ID: ${{ secrets.OWNER_ID }}
+      OWNER_ID: 834554042
 
     steps:
       - name: Clonar repositorio UPLOADER-BOT

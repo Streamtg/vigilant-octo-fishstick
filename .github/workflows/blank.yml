@@ -1,8 +1,8 @@
-name: Ejecutar bot X-URL-Uploader
+name: Ejecutar Uploader Bot
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -11,17 +11,24 @@ jobs:
 
     env:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      APP_ID: ${{ secrets.APP_ID }}
+      API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
       OWNER_ID: ${{ secrets.OWNER_ID }}
-      AUTH_USERS: ${{ secrets.AUTH_USERS }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
+      - name: Clonar repositorio UPLOADER-BOT
+        run: git clone https://github.com/Clinton-Abraham/UPLOADER-BOT.git
+
       - name: Crear entorno virtual e instalar dependencias
         run: |
-          python3 -m venv ./venv && . ./venv/bin/activate && python -m pip install -U pip
-          git clone https://github.com/X-Gorn/X-URL-Uploader.git
-          cd X-URL-Uploader
-          pip install -U -r requirements.txt
-          pythom -m Bot
+          cd UPLOADER-BOT
+          python3 -m venv venv
+          . venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ejecutar bot
+        run: |
+          cd UPLOADER-BOT
+          . venv/bin/activate
+          python bot.py

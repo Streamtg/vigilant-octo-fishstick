@@ -18,20 +18,19 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
-      - name: Clonar repositorio actual
-        uses: actions/checkout@v3
-
-      - name: Clonar repo original X-Gorn/X-URL-Uploader
+      - name: Clonar repo oficial X-Gorn/X-URL-Uploader
         run: git clone https://github.com/X-Gorn/X-URL-Uploader.git
 
       - name: Crear entorno virtual e instalar dependencias
         run: |
-          python3 -m venv ./venv
-          . ./venv/bin/activate
-          python -m pip install -U pip
-          pip install -U -r X-URL-Uploader/requirements.txt
+          cd X-URL-Uploader
+          python3 -m venv ../venv
+          . ../venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Ejecutar el bot
+      - name: Ejecutar bot.py
         run: |
-          . ./venv/bin/activate
-          python X-URL-Uploader/bot.py
+          cd X-URL-Uploader
+          . ../venv/bin/activate
+          python Bot/bot.py

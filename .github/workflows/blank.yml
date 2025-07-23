@@ -9,19 +9,15 @@ jobs:
 
     steps:
       - name: Clonar repo desde GitLab
-        run: git clone https://github.com/vgvr0/Telegram-Youtube-Twitter-TikTok-Downloader.git
+        run: git clone https://github.com/yourusername/teledown-bot.git
 
       - name: Instalar Python y dependencias
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
-          cd Telegram-Youtube-Twitter-TikTok-Downloader
+          cd teledown-bot
           pip3 install --upgrade pip
           pip3 install -r requirements.txt
-
-      - name: Ejecutar bot con variables de entorno explícitas
-        run: |
-          cd urlarriba
           API_ID=${{ secrets.API_ID }} \
           API_HASH=${{ secrets.API_HASH }} \
           BOT_TOKEN=${{ secrets.BOT_TOKEN }} \

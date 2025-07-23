@@ -37,14 +37,15 @@ jobs:
           MULTI_TOKEN2=${{ secrets.MULTI_TOKEN2 }}
           OWNER_ID=${{ secrets.OWNER_ID }}
           PORT=8080
+          CHANNEL_ID=${{ secrets.CHANNEL_ID }}
           EOF
 
-      - name: ▶️ Ejecutar FileStreamBot en background (simula tmux)
+      - name: ▶️ Ejecutar FileStreamBot en segundo plano
         working-directory: ./FileStreamBot
         run: |
           source venv/bin/activate
           nohup python3 -m FileStream > bot.log 2>&1 &
           echo "Bot ejecutándose en segundo plano..."
 
-      - name: 💤 Esperar 60 segundos (simula bot activo)
+      - name: 💤 Mantener el runner activo
         run: sleep 60

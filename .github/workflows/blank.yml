@@ -38,3 +38,4 @@ jobs:
           sudo apt update && sudo apt install ngrok
           ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
           ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app
+          python3 bot.py

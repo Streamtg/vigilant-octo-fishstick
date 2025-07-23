@@ -16,20 +16,12 @@ jobs:
       OWNER_ID: 834554042
 
     steps:
-      - name: Clonar repositorio All-Url-Uploader
+      - name: Clonar repositorio
         run: |
           git clone https://github.com/kalanakt/All-Url-Uploader.git
           cd All-Url-Uploader
           pip3 install --upgrade pip
           pip3 install -U -r requirements.txt
-
-      - name: Inyectar variables en config.py
-        run: |
-          cd All-Url-Uploader
-          sed -i "s|BOT_TOKEN = .*|BOT_TOKEN = '${BOT_TOKEN}'|" Uploader/config.py
-          sed -i "s|API_ID = .*|API_ID = ${API_ID}|" Uploader/config.py
-          sed -i "s|API_HASH = .*|API_HASH = '${API_HASH}'|" Uploader/config.py
-          sed -i "s|OWNER_ID = .*|OWNER_ID = ${OWNER_ID}|" Uploader/config.py
 
       - name: Ejecutar bot
         run: |

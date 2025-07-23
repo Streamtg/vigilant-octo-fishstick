@@ -1,28 +1,40 @@
-name: Ejecutar Simple FileStore Bot
+name: Deploy Simple_fileStore_BOT
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
-  ejecutar-bot:
+  deploy:
     runs-on: ubuntu-latest
 
-    env:
-      API_HASH: ${{ secrets.API_HASH }}
-      APP_ID: ${{ secrets.APP_ID }}
-      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-      OWNER_ID: ${{ secrets.OWNER_ID }}
-      CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
-
     steps:
-      - name: Clonar el repositorio
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Clone bot repository
         run: |
           git clone https://github.com/LazyDeveloperr/Simple_fileStore_BOT.git
           cd Simple_fileStore_BOT
+          python3 -m venv venv
+          . venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Run Simple_fileStore_BOT
+        env:
+          API_HASH: ${{ secrets.API_HASH }}
+          APP_ID: ${{ secrets.APP_ID }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          OWNER_ID: ${{ secrets.OWNER_ID }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+        run: |
+          cd Simple_fileStore_BOT
+          . venv/bin/activate
           python3 bot.py

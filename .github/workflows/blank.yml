@@ -1,10 +1,10 @@
-name: Run FileStreamBot with Venv (No Docker)
+name: Run FileStreamBot with Secrets Environment
 
 on:
-  workflow_dispatch:  # Ejecutar manualmente desde GitHub
+  workflow_dispatch:
 
 jobs:
-  run:
+  run-bot:
     runs-on: ubuntu-latest
 
     steps:
@@ -13,35 +13,32 @@ jobs:
           git clone https://github.com/avipatilpro/FileStreamBot
           cd FileStreamBot
 
-      - name: ⚙️ Crear entorno virtual y activar
+      - name: ⚙️ Configurar entorno Python
         working-directory: ./FileStreamBot
         run: |
           python3 -m venv venv
           source venv/bin/activate
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 📄 Crear archivo `.env` desde Secrets
-        working-directory: ./FileStreamBot
+      - name: 🔐 Exportar Secrets como variables de entorno
         run: |
-          cat > .env <<EOF
-          API_ID=${{ secrets.API_ID }}
-          API_HASH=${{ secrets.API_HASH }}
-          BOT_TOKEN=${{ secrets.BOT_TOKEN }}
-          ULOG_CHANNEL=${{ secrets.ULOG_CHANNEL }}
-          FLOG_CHANNEL=${{ secrets.FLOG_CHANNEL }}
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          FQDN=${{ secrets.FQDN }}
-          HAS_SSL=${{ secrets.HAS_SSL }}
-          MULTI_TOKEN1=${{ secrets.MULTI_TOKEN1 }}
-          MULTI_TOKEN2=${{ secrets.MULTI_TOKEN2 }}
-          OWNER_ID=${{ secrets.OWNER_ID }}
-          PORT=8080
-          CHANNEL_ID=${{ secrets.CHANNEL_ID }}
-          EOF
+          echo "API_ID=${{ secrets.API_ID }}" >> $GITHUB_ENV
+          echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
+          echo "ULOG_CHANNEL=${{ secrets.ULOG_CHANNEL }}" >> $GITHUB_ENV
+          echo "FLOG_CHANNEL=${{ secrets.FLOG_CHANNEL }}" >> $GITHUB_ENV
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+          echo "FQDN=${{ secrets.FQDN }}" >> $GITHUB_ENV
+          echo "HAS_SSL=${{ secrets.HAS_SSL }}" >> $GITHUB_ENV
+          echo "MULTI_TOKEN1=${{ secrets.MULTI_TOKEN1 }}" >> $GITHUB_ENV
+          echo "MULTI_TOKEN2=${{ secrets.MULTI_TOKEN2 }}" >> $GITHUB_ENV
+          echo "OWNER_ID=${{ secrets.OWNER_ID }}" >> $GITHUB_ENV
+          echo "PORT=8080" >> $GITHUB_ENV
+          echo "CHANNEL_ID=${{ secrets.CHANNEL_ID }}" >> $GITHUB_ENV
 
-      - name: ▶️ Ejecutar FileStreamBot en segundo plano
+      - name: ▶️ Ejecutar FileStreamBot
         working-directory: ./FileStreamBot
         run: |
           source venv/bin/activate
-          nohup python3 -m FileStream
+          python3 -m FileStream

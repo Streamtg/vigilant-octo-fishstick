@@ -9,13 +9,13 @@ jobs:
 
     steps:
       - name: Clonar repo desde GitLab
-        run: git clone https://gitlab.com/none342/urlarriba.git
+        run: git clone https://github.com/vgvr0/Telegram-Youtube-Twitter-TikTok-Downloader.git
 
       - name: Instalar Python y dependencias
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
-          cd urlarriba
+          cd Telegram-Youtube-Twitter-TikTok-Downloader
           pip3 install --upgrade pip
           pip3 install -r requirements.txt
 

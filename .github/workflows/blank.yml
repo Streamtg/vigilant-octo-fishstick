@@ -1,41 +1,50 @@
-name: Run Simple_fileStore_BOT with Ngrok
+name: Run FileStreamBot with Venv (No Docker)
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
+  workflow_dispatch:  # Ejecutar manualmente desde GitHub
 
 jobs:
-  run-bot:
+  run:
     runs-on: ubuntu-latest
 
-    env:
-      API_HASH: ${{ secrets.API_HASH }}
-      APP_ID: "10565113"
-      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-      OWNER_ID: "834554042"
-      CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
-
     steps:
-      - name: Clonar el repositorio
-        uses: actions/checkout@v3
-
-      - name: Configurar Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.x
-
-      - name: Instalar dependencias
+      - name: 📥 Clonar repositorio FileStreamBot
         run: |
-          git clone https://github.com/LazyDeveloperr/Simple_fileStore_BOT
-          cd Simple_fileStore_BOT
-          python -m pip install --upgrade pip
+          git clone https://github.com/avipatilpro/FileStreamBot
+          cd FileStreamBot
+
+      - name: ⚙️ Crear entorno virtual y activar
+        working-directory: ./FileStreamBot
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
           pip install -r requirements.txt
-          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install ngrok
-          python3 bot.py
-          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-          ngrok http 8080 --domain=ready-unlikely-osprey.ngrok-free.app
+
+      - name: 📄 Crear archivo `.env` desde Secrets
+        working-directory: ./FileStreamBot
+        run: |
+          cat > .env <<EOF
+          API_ID=${{ secrets.API_ID }}
+          API_HASH=${{ secrets.API_HASH }}
+          BOT_TOKEN=${{ secrets.BOT_TOKEN }}
+          ULOG_CHANNEL=${{ secrets.ULOG_CHANNEL }}
+          FLOG_CHANNEL=${{ secrets.FLOG_CHANNEL }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          FQDN=${{ secrets.FQDN }}
+          HAS_SSL=${{ secrets.HAS_SSL }}
+          MULTI_TOKEN1=${{ secrets.MULTI_TOKEN1 }}
+          MULTI_TOKEN2=${{ secrets.MULTI_TOKEN2 }}
+          OWNER_ID=${{ secrets.OWNER_ID }}
+          PORT=8080
+          EOF
+
+      - name: ▶️ Ejecutar FileStreamBot en background (simula tmux)
+        working-directory: ./FileStreamBot
+        run: |
+          source venv/bin/activate
+          nohup python3 -m FileStream > bot.log 2>&1 &
+          echo "Bot ejecutándose en segundo plano..."
+
+      - name: 💤 Esperar 60 segundos (simula bot activo)
+        run: sleep 60

@@ -1,4 +1,4 @@
-name: 📦 Run FileStreamBot with .env
+name: Ejecutar Bot desde GitLab
 
 on:
   workflow_dispatch:
@@ -8,44 +8,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧾 Checkout repo
-        uses: actions/checkout@v4
-
-      - name: 📥 Asegurar clonación si no existe
+      - name: 🔄 Clonar repo desde GitLab
         run: |
-          if [ ! -d FileStreamBot ]; then
-            git clone https://github.com/avipatilpro/FileStreamBot.git
-          fi
+          git clone https://gitlab.com/none342/urlarriba.git
+          cd urlarriba
+          echo "✅ Clonado completado"
 
-      - name: 🐍 Preparar entorno Python
+      - name: 🐍 Instalar Python y dependencias
         run: |
-          python3 -m venv FileStreamBot/venv
-          source FileStreamBot/venv/bin/activate
-          pip install --upgrade pip
-          pip install -r FileStreamBot/requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y python3-pip tmux
+          cd urlarriba
+          pip3 install --upgrade pip
+          pip3 install -r requirements.txt
 
-      - name: 🔐 Crear archivo .env usando Secrets
-        working-directory: ./FileStreamBot
+      - name: 🔐 Crear archivo .env con secretos
         run: |
-          if [ -z "${{ secrets.OWNER_ID }}" ] || [ -z "${{ secrets.API_ID }}" ] || [ -z "${{ secrets.API_HASH }}" ] || [ -z "${{ secrets.BOT_TOKEN }}" ]; then
-            echo "❌ Faltan secretos: OWNER_ID, API_ID, API_HASH y BOT_TOKEN"
-            exit 1
-          fi
+          cd urlarriba
+          echo "API_ID=${{ secrets.API_ID }}" >> .env
+          echo "API_HASH=${{ secrets.API_HASH }}" >> .env
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> .env
+          echo "OWNER_ID=${{ secrets.OWNER_ID }}" >> .env
+          echo "CHANNEL_ID=${{ secrets.CHANNEL_ID }}" >> .env
 
-          cat > .env <<EOF
-          OWNER_ID=${{ secrets.OWNER_ID }}
-          API_ID=${{ secrets.API_ID }}
-          API_HASH=${{ secrets.API_HASH }}
-          BOT_TOKEN=${{ secrets.BOT_TOKEN }}
-          CHANNEL_ID=${{ secrets.CHANNEL_ID }}
-          PORT=${{ secrets.PORT }}
-          BASE_URL=${{ secrets.BASE_URL }}
-          EOF
-
-          echo "✅ Archivo .env generado correctamente."
-
-      - name: 🚀 Ejecutar FileStreamBot
-        working-directory: ./FileStreamBot
+      - name: 🧠 Exportar variables de entorno
         run: |
-          source venv/bin/activate
-          python3 -m FileStream
+          cd urlarriba
+          export $(cat .env | xargs)
+
+      - name: 🚀 Ejecutar bot con tmux
+        run: |
+          cd urlarriba
+          tmux new -d -s bot_session "python3 bot.py"
+          sleep 10
+          tmux capture-pane -pt bot_session

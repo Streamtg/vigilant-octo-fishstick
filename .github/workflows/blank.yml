@@ -33,5 +33,4 @@ jobs:
 
       - name: Ejecutar bot
         run: |
-          cd All-Url-Uploader
           python3 bot.py

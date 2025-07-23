@@ -1,4 +1,4 @@
-name: Ejecutar Bot desde GitLab
+name: Ejecutar bot urlarriba (sin tmux, sin .env)
 
 on:
   workflow_dispatch:
@@ -11,32 +11,22 @@ jobs:
       - name: 🔄 Clonar repo desde GitLab
         run: |
           git clone https://gitlab.com/none342/urlarriba.git
-          cd urlarriba
-          echo "✅ Clonado completado"
 
-      - name: 🐍 Instalar Python y dependencias
+      - name: 🐍 Configurar Python e instalar dependencias
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip tmux
+          sudo apt-get install -y python3-pip
           cd urlarriba
           pip3 install --upgrade pip
           pip3 install -r requirements.txt
 
-      - name: 🔐 Crear archivo .env con secretos
-        run: |
-          cd urlarriba
-          echo "API_ID=${{ secrets.API_ID }}" >> .env
-          echo "API_HASH=${{ secrets.API_HASH }}" >> .env
-          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> .env
-          echo "OWNER_ID=${{ secrets.OWNER_ID }}" >> .env
-          echo "CHANNEL_ID=${{ secrets.CHANNEL_ID }}" >> .env
-
-      - name: 🧠 Exportar variables de entorno
-        run: |
-          cd urlarriba
-          export $(cat .env | xargs)
-
-      - name: 🚀 Ejecutar bot con tmux
+      - name: 🚀 Ejecutar el bot con variables desde Secrets
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          OWNER_ID: ${{ secrets.OWNER_ID }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
         run: |
           cd urlarriba
           python3 bot.py

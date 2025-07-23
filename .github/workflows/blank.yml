@@ -1,4 +1,4 @@
-name: Run FileStreamBot with .env from Secrets
+name: 📦 Run FileStreamBot with .env
 
 on:
   workflow_dispatch:
@@ -8,39 +8,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Clonar repositorio FileStreamBot
-        run: |
-          git clone https://github.com/avipatilpro/FileStreamBot
-          cd FileStreamBot
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v4
 
-      - name: ⚙️ Crear entorno virtual y activar
+      - name: 📥 Asegurar clonación si no existe
+        run: |
+          if [ ! -d FileStreamBot ]; then
+            git clone https://github.com/avipatilpro/FileStreamBot.git
+          fi
+
+      - name: 🐍 Preparar entorno Python
+        run: |
+          python3 -m venv FileStreamBot/venv
+          source FileStreamBot/venv/bin/activate
+          pip install --upgrade pip
+          pip install -r FileStreamBot/requirements.txt
+
+      - name: 🔐 Crear archivo .env usando Secrets
         working-directory: ./FileStreamBot
         run: |
-          python3 -m venv venv
-          source venv/bin/activate
-          python3 -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -z "${{ secrets.OWNER_ID }}" ] || [ -z "${{ secrets.API_ID }}" ] || [ -z "${{ secrets.API_HASH }}" ] || [ -z "${{ secrets.BOT_TOKEN }}" ]; then
+            echo "❌ Faltan secretos: OWNER_ID, API_ID, API_HASH y BOT_TOKEN"
+            exit 1
+          fi
 
-      - name: 📄 Crear archivo `.env` con los GitHub Secrets
-        working-directory: ./FileStreamBot
-        run: |
           cat > .env <<EOF
+          OWNER_ID=${{ secrets.OWNER_ID }}
           API_ID=${{ secrets.API_ID }}
           API_HASH=${{ secrets.API_HASH }}
           BOT_TOKEN=${{ secrets.BOT_TOKEN }}
-          ULOG_CHANNEL=${{ secrets.ULOG_CHANNEL }}
-          FLOG_CHANNEL=${{ secrets.FLOG_CHANNEL }}
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          FQDN=${{ secrets.FQDN }}
-          HAS_SSL=${{ secrets.HAS_SSL }}
-          MULTI_TOKEN1=${{ secrets.MULTI_TOKEN1 }}
-          MULTI_TOKEN2=${{ secrets.MULTI_TOKEN2 }}
-          OWNER_ID=${{ secrets.OWNER_ID }}
-          PORT=8080
           CHANNEL_ID=${{ secrets.CHANNEL_ID }}
+          PORT=${{ secrets.PORT }}
+          BASE_URL=${{ secrets.BASE_URL }}
           EOF
 
-      - name: ▶️ Ejecutar FileStreamBot
+          echo "✅ Archivo .env generado correctamente."
+
+      - name: 🚀 Ejecutar FileStreamBot
         working-directory: ./FileStreamBot
         run: |
           source venv/bin/activate

@@ -1,4 +1,4 @@
-name: Ejecutar Uploader Bot
+name: Ejecutar All-Url-Uploader
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-bot:
+  ejecutar:
     runs-on: ubuntu-latest
 
     env:
@@ -16,19 +16,22 @@ jobs:
       OWNER_ID: 834554042
 
     steps:
-      - name: Clonar repositorio UPLOADER-BOT
-        run: git clone https://github.com/Clinton-Abraham/UPLOADER-BOT.git
-
-      - name: Crear entorno virtual e instalar dependencias
+      - name: Clonar repositorio All-Url-Uploader
         run: |
-          cd UPLOADER-BOT
-          python3 -m venv venv
-          . venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          git clone https://github.com/kalanakt/All-Url-Uploader.git
+          cd All-Url-Uploader
+          pip3 install --upgrade pip
+          pip3 install -U -r requirements.txt
+
+      - name: Inyectar variables en config.py
+        run: |
+          cd All-Url-Uploader
+          sed -i "s|BOT_TOKEN = .*|BOT_TOKEN = '${BOT_TOKEN}'|" Uploader/config.py
+          sed -i "s|API_ID = .*|API_ID = ${API_ID}|" Uploader/config.py
+          sed -i "s|API_HASH = .*|API_HASH = '${API_HASH}'|" Uploader/config.py
+          sed -i "s|OWNER_ID = .*|OWNER_ID = ${OWNER_ID}|" Uploader/config.py
 
       - name: Ejecutar bot
         run: |
-          cd UPLOADER-BOT
-          . venv/bin/activate
-          python bot.py
+          cd All-Url-Uploader
+          python3 bot.py

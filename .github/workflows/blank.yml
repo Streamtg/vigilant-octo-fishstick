@@ -1,4 +1,4 @@
-name: Run FileStreamBot with Secrets Environment
+name: Run FileStreamBot with .env from Secrets
 
 on:
   workflow_dispatch:
@@ -13,29 +13,32 @@ jobs:
           git clone https://github.com/avipatilpro/FileStreamBot
           cd FileStreamBot
 
-      - name: ⚙️ Configurar entorno Python
+      - name: ⚙️ Crear entorno virtual y activar
         working-directory: ./FileStreamBot
         run: |
           python3 -m venv venv
           source venv/bin/activate
-          python -m pip install --upgrade pip
+          python3 -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 🔐 Exportar Secrets como variables de entorno
+      - name: 📄 Crear archivo `.env` con los GitHub Secrets
+        working-directory: ./FileStreamBot
         run: |
-          echo "API_ID=${{ secrets.API_ID }}" >> $GITHUB_ENV
-          echo "API_HASH=${{ secrets.API_HASH }}" >> $GITHUB_ENV
-          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> $GITHUB_ENV
-          echo "ULOG_CHANNEL=${{ secrets.ULOG_CHANNEL }}" >> $GITHUB_ENV
-          echo "FLOG_CHANNEL=${{ secrets.FLOG_CHANNEL }}" >> $GITHUB_ENV
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
-          echo "FQDN=${{ secrets.FQDN }}" >> $GITHUB_ENV
-          echo "HAS_SSL=${{ secrets.HAS_SSL }}" >> $GITHUB_ENV
-          echo "MULTI_TOKEN1=${{ secrets.MULTI_TOKEN1 }}" >> $GITHUB_ENV
-          echo "MULTI_TOKEN2=${{ secrets.MULTI_TOKEN2 }}" >> $GITHUB_ENV
-          echo "OWNER_ID=${{ secrets.OWNER_ID }}" >> $GITHUB_ENV
-          echo "PORT=8080" >> $GITHUB_ENV
-          echo "CHANNEL_ID=${{ secrets.CHANNEL_ID }}" >> $GITHUB_ENV
+          cat > .env <<EOF
+          API_ID=${{ secrets.API_ID }}
+          API_HASH=${{ secrets.API_HASH }}
+          BOT_TOKEN=${{ secrets.BOT_TOKEN }}
+          ULOG_CHANNEL=${{ secrets.ULOG_CHANNEL }}
+          FLOG_CHANNEL=${{ secrets.FLOG_CHANNEL }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          FQDN=${{ secrets.FQDN }}
+          HAS_SSL=${{ secrets.HAS_SSL }}
+          MULTI_TOKEN1=${{ secrets.MULTI_TOKEN1 }}
+          MULTI_TOKEN2=${{ secrets.MULTI_TOKEN2 }}
+          OWNER_ID=${{ secrets.OWNER_ID }}
+          PORT=8080
+          CHANNEL_ID=${{ secrets.CHANNEL_ID }}
+          EOF
 
       - name: ▶️ Ejecutar FileStreamBot
         working-directory: ./FileStreamBot

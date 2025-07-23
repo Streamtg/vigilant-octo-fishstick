@@ -1,25 +1,39 @@
-name: Ejecutar All-Url-Uploader
+name: Ejecutar Simple FileStore Bot
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  ejecutar:
+  ejecutar-bot:
     runs-on: ubuntu-latest
 
     env:
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      API_ID: ${{ secrets.API_ID }}
       API_HASH: ${{ secrets.API_HASH }}
-      OWNER_ID: 834554042
+      APP_ID: ${{ secrets.APP_ID }}
+      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+      OWNER_ID: ${{ secrets.OWNER_ID }}
+      CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
 
     steps:
-      - name: Clonar repositorio
+      - name: Clonar el repositorio
         run: |
-          git clone https://github.com/kalanakt/All-Url-Uploader.git
-          cd All-Url-Uploader
-          pip3 install --upgrade pip
-          pip3 install -U -r requirements.txt
+          git clone https://github.com/LazyDeveloperr/Simple_fileStore_BOT.git
+          cd Simple_fileStore_BOT
+
+      - name: Configurar entorno virtual e instalar dependencias
+        run: |
+          cd Simple_fileStore_BOT
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ejecutar el bot
+        run: |
+          cd Simple_fileStore_BOT
+          . ../venv/bin/activate
           python3 bot.py

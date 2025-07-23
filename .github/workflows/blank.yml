@@ -1,26 +1,43 @@
-name: Ejecutar bot urlarriba (con variables explícitas)
+name: Run External Telegram Downloader Bot
 
 on:
   workflow_dispatch:
 
 jobs:
-  run-bot:
+  run-external-bot:
     runs-on: ubuntu-latest
 
+    env:
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+      TEMP_DOWNLOAD_FOLDER: downloads
+
     steps:
-      - name: Clonar repo desde GitLab
+      - name: 📥 Clonar repositorio externo
         run: git clone https://github.com/vgvr0/Telegram-Youtube-Twitter-TikTok-Downloader.git
 
-      - name: Instalar Python y dependencias
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 🧪 Instalar dependencias
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip
           cd Telegram-Youtube-Twitter-TikTok-Downloader
-          pip3 install --upgrade pip
-          pip3 install -r requirements.txt
-          API_ID=${{ secrets.API_ID }} \
-          API_HASH=${{ secrets.API_HASH }} \
-          BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
-          OWNER_ID=${{ secrets.OWNER_ID }} \
-          CHANNEL_ID=${{ secrets.CHANNEL_ID }} \
-          python3 telegram_media_downloader_bot.py
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🔐 Crear archivo .env
+        run: |
+          cd Telegram-Youtube-Twitter-TikTok-Downloader
+          echo "API_TOKEN=${API_TOKEN}" > .env
+          echo "TEMP_DOWNLOAD_FOLDER=${TEMP_DOWNLOAD_FOLDER}" >> .env
+          mkdir -p $TEMP_DOWNLOAD_FOLDER
+
+      - name: 🚀 Ejecutar bot
+        run: |
+          cd Telegram-Youtube-Twitter-TikTok-Downloader
+          source venv/bin/activate
+          nohup python bot.py &
+          sleep 60

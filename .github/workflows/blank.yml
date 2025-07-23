@@ -39,6 +39,4 @@ jobs:
       - name: 🚀 Ejecutar bot con tmux
         run: |
           cd urlarriba
-          tmux new -d -s bot_session "python3 bot.py"
-          sleep 10
-          tmux capture-pane -pt bot_session
+          python3 bot.py

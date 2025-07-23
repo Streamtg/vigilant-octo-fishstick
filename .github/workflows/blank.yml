@@ -23,9 +23,6 @@ jobs:
         run: |
           git clone https://github.com/LazyDeveloperr/Simple_fileStore_BOT.git
           cd Simple_fileStore_BOT
-          python3 -m venv venv
-          . venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          . ../venv/bin/activate
           python3 bot.py

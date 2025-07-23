@@ -1,4 +1,4 @@
-name: Ejecutar bot urlarriba (sin tmux, sin .env)
+name: Ejecutar bot urlarriba (con variables explícitas)
 
 on:
   workflow_dispatch:
@@ -8,11 +8,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🔄 Clonar repo desde GitLab
-        run: |
-          git clone https://gitlab.com/none342/urlarriba.git
+      - name: Clonar repo desde GitLab
+        run: git clone https://gitlab.com/none342/urlarriba.git
 
-      - name: 🐍 Configurar Python e instalar dependencias
+      - name: Instalar Python y dependencias
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
@@ -20,13 +19,12 @@ jobs:
           pip3 install --upgrade pip
           pip3 install -r requirements.txt
 
-      - name: 🚀 Ejecutar el bot con variables desde Secrets
-        env:
-          API_ID: ${{ secrets.API_ID }}
-          API_HASH: ${{ secrets.API_HASH }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          OWNER_ID: ${{ secrets.OWNER_ID }}
-          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+      - name: Ejecutar bot con variables de entorno explícitas
         run: |
           cd urlarriba
+          API_ID=${{ secrets.API_ID }} \
+          API_HASH=${{ secrets.API_HASH }} \
+          BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
+          OWNER_ID=${{ secrets.OWNER_ID }} \
+          CHANNEL_ID=${{ secrets.CHANNEL_ID }} \
           python3 bot.py

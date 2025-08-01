@@ -35,17 +35,14 @@ jobs:
       run: |
         git clone https://github.com/Streamtg/FileSt.git
         cd FileSt
+        wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz && tar -xvzf ngrok-v3-stable-linux-amd64.tgz && ./ngrok config add-authtoken 1rwcdQzDtdvfWVTVkkorPrGBk8B_3BvS9EwFovNLEQfjNAYD5
         python -m venv venv
         source venv/bin/activate
         pip install --upgrade pip
         pip install -r requirements.txt
-
-    - name: Run bot with Ngrok tunnel
-      run: |
-        cd FileSt
         source venv/bin/activate
         # Abrir túnel en segundo plano
-        ngrok http --url=inspired-ghoul-pumped.ngrok-free.app 8080 &
+        ./ngrok http --url=inspired-ghoul-pumped.ngrok-free.app 8080 &
         sleep 5
         # Iniciar bot
         python3 -m FileStream

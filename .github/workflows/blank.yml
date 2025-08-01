@@ -44,4 +44,8 @@ jobs:
       run: |
         cd FileSt
         source venv/bin/activate
-        python3 -m FileStream & sleep 8 & ngrok http --url=inspired-ghoul-pumped.ngrok-free.app 8080
+        # Abrir túnel en segundo plano
+        ngrok http --url=inspired-ghoul-pumped.ngrok-free.app 8080 &
+        sleep 5
+        # Iniciar bot
+        python3 -m FileStream

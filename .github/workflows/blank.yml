@@ -44,6 +44,6 @@ jobs:
       run: |
         cd FileSt
         source venv/bin/activate
-        ./ngrok http --url=inspired-ghoul-pumped.ngrok-free.app 8080 &
+        ngrok http --url=inspired-ghoul-pumped.ngrok-free.app 8080 &
         sleep 5
         python3 -m FileStream

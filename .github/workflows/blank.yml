@@ -19,18 +19,6 @@ jobs:
       with:
         python-version: "3.12"
 
-    - name: Install Ngrok
-      run: |
-        curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-        | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-        | sudo tee /etc/apt/sources.list.d/ngrok.list
-        sudo apt update
-        sudo apt install -y ngrok
-
-    - name: Configure Ngrok
-      run: ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-
     - name: Install bot dependencies
       run: |
         git clone https://github.com/Streamtg/FileSt.git
@@ -41,8 +29,6 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
         source venv/bin/activate
-        # Abrir túnel en segundo plano
         ./ngrok http --url=inspired-ghoul-pumped.ngrok-free.app 8080 &
         sleep 5
-        # Iniciar bot
         python3 -m FileStream

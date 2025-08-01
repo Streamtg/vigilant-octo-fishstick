@@ -1,42 +1,31 @@
-name: Run External Telegram Downloader Bot
+name: Run FileStreamBot
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Para lanzarlo manualmente
+  push:
+    branches:
+      - main
 
 jobs:
-  run-external-bot:
+  run-bot:
     runs-on: ubuntu-latest
 
-    env:
-      API_TOKEN: ${{ secrets.API_TOKEN }}
-      TEMP_DOWNLOAD_FOLDER: downloads
-
     steps:
-      - name: 📥 Clonar repositorio externo
-        run: git clone https://github.com/vgvr0/Telegram-Youtube-Twitter-TikTok-Downloader.git
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
-      - name: 🐍 Configurar Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
 
-      - name: 🧪 Instalar dependencias
-        run: |
-          cd Telegram-Youtube-Twitter-TikTok-Downloader
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: 🔐 Crear archivo .env
-        run: |
-          cd Telegram-Youtube-Twitter-TikTok-Downloader
-          echo "API_TOKEN=${API_TOKEN}" > .env
-          echo "TEMP_DOWNLOAD_FOLDER=${TEMP_DOWNLOAD_FOLDER}" >> .env
-          mkdir -p $TEMP_DOWNLOAD_FOLDER
-
-      - name: 🚀 Ejecutar bot
-        run: |
-          cd Telegram-Youtube-Twitter-TikTok-Downloader
-          source venv/bin/activate
-          python telegram_media_downloader_bot.py
+    - name: Install dependencies
+      run: |
+        git clone https://github.com/Streamtg/FileSt.git
+        cd FileSt
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        source venv/bin/activate
+        python3 -m FileStream
